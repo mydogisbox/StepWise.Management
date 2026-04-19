@@ -4,7 +4,7 @@
     { "build": "createWorkflow" },
     { "build": "archiveWorkflow" },
     { "build": "unarchiveWorkflow" },
-    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "postWorkflowCommands" },
     { "step": "getWorkflow" }
   ],
   "assertions": [

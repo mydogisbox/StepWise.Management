@@ -2,14 +2,14 @@
   "name": "Catalog_05_ArchiveStep",
   "steps": [
     { "build": "createTarget" },
-    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "postTargetCommands" },
     { "step": "listTargets" },
     { "build": "createCatalog" },
-    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "postCatalogCommands" },
     { "step": "listCatalogs" },
     { "build": "upsertStep" },
     { "build": "archiveStep" },
-    { "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" },
+    { "step": "postCatalogStepCommands" },
     { "step": "getCatalogStep" }
   ],
   "assertions": [

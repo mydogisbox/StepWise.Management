@@ -11,7 +11,7 @@
         }}
       }
     },
-    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "postWorkflowCommands" },
     { "step": "runWorkflow" }
   ],
   "assertions": [

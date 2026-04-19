@@ -30,7 +30,7 @@
       "method": "GET",
       "path": "/targets/{aggregateId}",
       "pathParams": {
-        "aggregateId": { "from": "targetReq.aggregateId" }
+        "aggregateId": { "from": "createTarget.payload.id" }
       }
     },
     "createCatalog": {
@@ -62,7 +62,7 @@
       "method": "GET",
       "path": "/catalogs/{aggregateId}",
       "pathParams": {
-        "aggregateId": { "from": "catalogReq.aggregateId" }
+        "aggregateId": { "from": "createCatalog.payload.id" }
       }
     },
     "upsertStep": {
@@ -71,7 +71,7 @@
         "type": { "static": "UpsertStep" },
         "payload": { "static": {
           "id": { "generated": "guid" },
-          "catalogId": { "from": "catalogReq.aggregateId" },
+          "catalogId": { "from": "createCatalog.payload.id" },
           "stepName": { "generated": "guid" },
           "targetId": { "from": "listTargets[?name=createTarget.payload.name].id" },
           "method": { "static": "GET" },
@@ -100,7 +100,7 @@
       "method": "GET",
       "path": "/catalog-steps",
       "query": {
-        "catalogId": { "from": "catalogReq.aggregateId" }
+        "catalogId": { "from": "createCatalog.payload.id" }
       }
     },
     "getCatalogStep": {
@@ -108,7 +108,7 @@
       "method": "GET",
       "path": "/catalog-steps/{aggregateId}",
       "pathParams": {
-        "aggregateId": { "from": "catalogStepReq.aggregateId" }
+        "aggregateId": { "from": "upsertStep.payload.id" }
       }
     },
     "createWorkflow": {
@@ -136,8 +136,8 @@
         "type": { "static": "AppendStep" },
         "payload": { "static": {
           "id": { "generated": "guid" },
-          "catalogStepId": { "from": "catalogStepReq.aggregateId" },
-          "catalogId": { "from": "catalogReq.aggregateId" }
+          "catalogStepId": { "from": "upsertStep.payload.id" },
+          "catalogId": { "from": "createCatalog.payload.id" }
         }}
       }
     },
@@ -148,8 +148,8 @@
         "payload": { "static": {
           "beforeId": { "from": "appendStep.payload.id" },
           "id": { "generated": "guid" },
-          "catalogStepId": { "from": "catalogStepReq.aggregateId" },
-          "catalogId": { "from": "catalogReq.aggregateId" }
+          "catalogStepId": { "from": "upsertStep.payload.id" },
+          "catalogId": { "from": "createCatalog.payload.id" }
         }}
       }
     },
@@ -208,7 +208,7 @@
       "method": "GET",
       "path": "/workflows/{aggregateId}",
       "pathParams": {
-        "aggregateId": { "from": "workflowReq.aggregateId" }
+        "aggregateId": { "from": "createWorkflow.payload.id" }
       }
     },
     "runWorkflow": {
@@ -216,7 +216,7 @@
       "method": "POST",
       "path": "/api/workflows/{workflowId}/run",
       "pathParams": {
-        "workflowId": { "from": "workflowReq.aggregateId" }
+        "workflowId": { "from": "createWorkflow.payload.id" }
       }
     },
     "getRun": {

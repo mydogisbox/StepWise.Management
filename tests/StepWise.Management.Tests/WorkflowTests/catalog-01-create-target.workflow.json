@@ -10,7 +10,7 @@
         }}
       }
     },
-    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "postTargetCommands" },
     { "step": "getTarget" }
   ],
   "assertions": [

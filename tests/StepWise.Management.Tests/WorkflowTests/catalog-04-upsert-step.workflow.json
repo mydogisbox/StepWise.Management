@@ -2,10 +2,10 @@
   "name": "Catalog_04_UpsertStep",
   "steps": [
     { "build": "createTarget" },
-    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "postTargetCommands" },
     { "step": "listTargets" },
     { "build": "createCatalog" },
-    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "postCatalogCommands" },
     { "step": "listCatalogs" },
     {
       "build": "upsertStep",
@@ -42,7 +42,7 @@
   ],
   "assertions": [
     { "equal": ["getCatalogStep.stepName", "getStatus"] },
-    { "equal": ["getCatalogStep.targetId", "targetReq.aggregateId"] },
+    { "equal": ["getCatalogStep.targetId", "createTarget.payload.id"] },
     { "equal": ["getCatalogStep.method", "POST"] },
     { "equal": ["getCatalogStep.path", "/api/catalogs/v2"] },
     { "equal": ["getCatalogStep.defaults.param", "value2"] }

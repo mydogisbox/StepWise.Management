@@ -9,7 +9,7 @@
         }}
       }
     },
-    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "postCatalogCommands" },
     { "step": "getCatalog" }
   ],
   "assertions": [

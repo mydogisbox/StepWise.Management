@@ -3,7 +3,7 @@
   "steps": [
     { "build": "createWorkflow" },
     { "build": "archiveWorkflow" },
-    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "postWorkflowCommands" },
     { "step": "getWorkflow" }
   ],
   "assertions": [
