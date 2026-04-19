@@ -1,0 +1,12 @@
+{
+  "name": "Workflow_14_ArchiveWorkflow",
+  "steps": [
+    { "build": "createWorkflow" },
+    { "build": "archiveWorkflow" },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "getWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["getWorkflow.isArchived", "true"] }
+  ]
+}

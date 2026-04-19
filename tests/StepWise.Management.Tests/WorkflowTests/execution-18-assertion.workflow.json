@@ -1,0 +1,30 @@
+{
+  "name": "Execution_18_StoredAssertion",
+  "steps": [
+    { "workflow": "SetupCatalogWithStep" },
+    { "build": "createWorkflow" },
+    {
+      "build": "appendStep",
+      "with": {
+        "payload": { "static": {
+          "id": { "static": "e1800001-0000-0000-0000-000000000000" }
+        }}
+      }
+    },
+    {
+      "build": "addAssertion",
+      "with": {
+        "payload": { "static": {
+          "assertion": { "static": {
+            "notEmpty": { "static": "e1800001-0000-0000-0000-000000000000.pong" }
+          }}
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "runWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["runWorkflow.result.passed", "true"] }
+  ]
+}

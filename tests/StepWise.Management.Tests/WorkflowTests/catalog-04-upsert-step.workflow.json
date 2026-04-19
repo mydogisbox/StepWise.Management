@@ -1,0 +1,50 @@
+{
+  "name": "Catalog_04_UpsertStep",
+  "steps": [
+    { "build": "createTarget" },
+    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "listTargets" },
+    { "build": "createCatalog" },
+    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "listCatalogs" },
+    {
+      "build": "upsertStep",
+      "with": {
+        "payload": { "static": {
+          "stepName": { "static": "getStatus" },
+          "method": { "static": "GET" },
+          "path": { "static": "/api/catalogs" },
+          "defaults": { "static": { "param": "value1" } }
+        }}
+      }
+    },
+    { "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" },
+    { "step": "getCatalogStep" },
+    {
+      "build": "upsertStep",
+      "with": {
+        "payload": { "static": {
+          "id": { "from": "catalogStepReq.aggregateId" },
+          "stepName": { "static": "getStatus" },
+          "method": { "static": "POST" },
+          "path": { "static": "/api/catalogs/v2" },
+          "defaults": { "static": { "param": "value2" } }
+        }}
+      }
+    },
+    {
+      "step": "postCatalogStepCommands",
+      "with": {
+        "aggregateId": { "from": "catalogStepReq.aggregateId" }
+      }
+    },
+    { "step": "getCatalogStep" }
+  ],
+  "assertions": [
+    { "equal": ["getCatalogStep.stepName", "getStatus"] },
+    { "equal": ["getCatalogStep.targetId", "targetReq.aggregateId"] },
+    { "equal": ["getCatalogStep.method", "POST"] },
+    { "equal": ["getCatalogStep.path", "/api/catalogs/v2"] },
+    { "equal": ["getCatalogStep.defaults.param", "value2"] }
+  ]
+}

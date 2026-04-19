@@ -1,0 +1,23 @@
+{
+  "name": "Workflow_10_RemoveStep",
+  "steps": [
+    { "workflow": "SetupCatalogWithStep" },
+    { "build": "createWorkflow" },
+    { "build": "appendStep", "captureAs": "appendedStepA" },
+    { "build": "appendStep", "captureAs": "appendedStepB" },
+    {
+      "build": "removeStep",
+      "with": {
+        "payload": { "static": {
+          "id": { "from": "appendedStepA.payload.id" }
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "getWorkflow" }
+  ],
+  "assertions": [
+    { "count": ["getWorkflow.steps", "1"] },
+    { "equal": ["getWorkflow.steps[0].id", "appendedStepB.payload.id"] }
+  ]
+}

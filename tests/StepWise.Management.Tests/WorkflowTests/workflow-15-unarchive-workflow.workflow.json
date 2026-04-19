@@ -1,0 +1,13 @@
+{
+  "name": "Workflow_15_UnarchiveWorkflow",
+  "steps": [
+    { "build": "createWorkflow" },
+    { "build": "archiveWorkflow" },
+    { "build": "unarchiveWorkflow" },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "getWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["getWorkflow.isArchived", "false"] }
+  ]
+}

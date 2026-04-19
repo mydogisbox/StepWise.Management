@@ -1,0 +1,18 @@
+{
+  "name": "Catalog_02_Create",
+  "steps": [
+    {
+      "build": "createCatalog",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "My Catalog" }
+        }}
+      }
+    },
+    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "getCatalog" }
+  ],
+  "assertions": [
+    { "equal": ["getCatalog.name", "My Catalog"] }
+  ]
+}

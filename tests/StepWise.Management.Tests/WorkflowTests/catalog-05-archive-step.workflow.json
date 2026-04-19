@@ -1,0 +1,18 @@
+{
+  "name": "Catalog_05_ArchiveStep",
+  "steps": [
+    { "build": "createTarget" },
+    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "listTargets" },
+    { "build": "createCatalog" },
+    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "listCatalogs" },
+    { "build": "upsertStep" },
+    { "build": "archiveStep" },
+    { "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" },
+    { "step": "getCatalogStep" }
+  ],
+  "assertions": [
+    { "equal": ["getCatalogStep.isArchived", "true"] }
+  ]
+}

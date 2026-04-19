@@ -1,0 +1,19 @@
+{
+  "name": "Workflow_07_Rename",
+  "steps": [
+    { "build": "createWorkflow" },
+    {
+      "build": "renameWorkflow",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "Renamed Workflow 7" }
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "getWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["getWorkflow.name", "Renamed Workflow 7"] }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Execution_16_RunWorkflow",
+  "steps": [
+    { "workflow": "SetupCatalogWithStep" },
+    { "build": "createWorkflow" },
+    {
+      "build": "appendStep",
+      "with": {
+        "payload": { "static": {
+          "id": { "static": "e1600001-0000-0000-0000-000000000000" }
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "runWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["runWorkflow.result.passed", "true"] }
+  ]
+}

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Core/CommandFramework.Core.csproj" />
+    <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Http/CommandFramework.Http.csproj" />
+    <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Postgres/CommandFramework.Postgres.csproj" />
+    <ProjectReference Include="../../../StepWise/src/StepWise.Json/StepWise.Json.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Npgsql" Version="9.0.3" />
+  </ItemGroup>
+</Project>

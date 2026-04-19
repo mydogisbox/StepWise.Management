@@ -1,0 +1,30 @@
+{
+  "name": "Execution_17_CrossReference",
+  "steps": [
+    { "workflow": "SetupCatalogWithStep" },
+    { "build": "createWorkflow" },
+    {
+      "build": "appendStep",
+      "with": {
+        "payload": { "static": {
+          "id": { "static": "e1700001-0000-0000-0000-000000000000" }
+        }}
+      }
+    },
+    {
+      "build": "addAssertion",
+      "with": {
+        "payload": { "static": {
+          "assertion": { "static": {
+            "equal": { "static": ["e1700001-0000-0000-0000-000000000000.pong", "false"] }
+          }}
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "runWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["runWorkflow.result.passed", "false"] }
+  ]
+}

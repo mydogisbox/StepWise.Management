@@ -1,0 +1,14 @@
+{
+  "name": "SetupCatalogWithStep",
+  "steps": [
+    { "build": "createTarget" },
+    { "step": "postTargetCommands", "captureRequestAs": "targetReq" },
+    { "step": "listTargets" },
+    { "build": "createCatalog" },
+    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "listCatalogs" },
+    { "build": "upsertStep" },
+    { "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" },
+    { "step": "listCatalogSteps" }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "Catalog_03_AddStep",
+  "steps": [
+    { "build": "createTarget" },
+    { "step": "postTargetCommands"},
+    { "step": "listTargets" },
+    { "build": "createCatalog" },
+    { "step": "postCatalogCommands", "captureRequestAs": "catalogReq" },
+    { "step": "listCatalogs" },
+    {
+      "build": "upsertStep",
+      "with": {
+        "payload": { "static": {
+          "stepName": { "static": "getStatus" },
+          "method": { "static": "GET" },
+          "path": { "static": "/api/status" },
+          "defaults": { "static": { "param": "value1" } }
+        }}
+      }
+    },
+    { "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" },
+    { "step": "getCatalogStep" }
+  ],
+  "assertions": [
+    { "equal": ["getCatalogStep.stepName", "getStatus"] },
+    { "equal": ["getCatalogStep.targetId", "listTargets[?name=createTarget.payload.name].id"] },
+    { "equal": ["getCatalogStep.catalogId", "listCatalogs[?name=createCatalog.payload.name].id"] },
+    { "equal": ["getCatalogStep.method", "GET"] },
+    { "equal": ["getCatalogStep.path", "/api/status"] },
+    { "equal": ["getCatalogStep.defaults.param", "value1"] }
+  ]
+}

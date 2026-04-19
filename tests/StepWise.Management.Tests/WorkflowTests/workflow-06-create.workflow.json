@@ -1,0 +1,19 @@
+{
+  "name": "Workflow_06_Create",
+  "steps": [
+    {
+      "build": "createWorkflow",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "Test Workflow 6" }
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands", "captureRequestAs": "workflowReq" },
+    { "step": "getWorkflow" }
+  ],
+  "assertions": [
+    { "equal": ["getWorkflow.name", "Test Workflow 6"] },
+    { "empty": "getWorkflow.steps" }
+  ]
+}
