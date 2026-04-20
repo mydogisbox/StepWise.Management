@@ -39,6 +39,12 @@ public class JsonManagementTests : JsonWorkflowTestBase
     [Fact] public Task Catalog_05_ArchiveStep_IsArchivedTrue() =>
         RunWorkflowAsync("WorkflowTests/catalog-05-archive-step.workflow.json");
 
+    [Fact] public Task Catalog_06_ListExcludesArchivedByDefault() =>
+        RunWorkflowAsync("WorkflowTests/catalog-06-list-excludes-archived.workflow.json");
+
+    [Fact] public Task Catalog_07_ListIncludesArchivedWhenFlagSet() =>
+        RunWorkflowAsync("WorkflowTests/catalog-07-list-includes-archived.workflow.json");
+
     // ── Workflow ──────────────────────────────────────────────────────────────
 
     [Fact] public Task Workflow_06_Create_NameCorrectAndStepsEmpty() =>

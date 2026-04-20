@@ -127,20 +127,21 @@ app.MapGet("/catalogs", async () =>
     return Results.Ok(results);
 });
 
-app.MapGet("/catalog-steps", async (string? catalogId) =>
+app.MapGet("/catalog-steps", async (string? catalogId, bool showArchived = false) =>
 {
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
+    var conditions = new List<string>();
     if (catalogId != null)
     {
-        cmd.CommandText = "SELECT id, catalog_id, target_id, step_name, method, path, defaults::text, is_archived FROM catalog_step_summaries WHERE catalog_id = $1";
+        conditions.Add($"catalog_id = ${cmd.Parameters.Count + 1}");
         cmd.Parameters.Add(new NpgsqlParameter { Value = catalogId });
     }
-    else
-    {
-        cmd.CommandText = "SELECT id, catalog_id, target_id, step_name, method, path, defaults::text, is_archived FROM catalog_step_summaries";
-    }
+    if (!showArchived)
+        conditions.Add("is_archived = false");
+    var where = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
+    cmd.CommandText = $"SELECT id, catalog_id, target_id, step_name, method, path, defaults::text, is_archived FROM catalog_step_summaries{where}";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())

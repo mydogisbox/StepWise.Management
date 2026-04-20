@@ -1,0 +1,18 @@
+{
+  "name": "Catalog_06_ListExcludesArchived",
+  "steps": [
+    { "build": "createTarget" },
+    { "step": "postTargetCommands" },
+    { "step": "listTargets" },
+    { "build": "createCatalog" },
+    { "step": "postCatalogCommands" },
+    { "step": "listCatalogs" },
+    { "build": "upsertStep" },
+    { "build": "archiveStep" },
+    { "step": "postCatalogStepCommands" },
+    { "step": "listCatalogSteps" }
+  ],
+  "assertions": [
+    { "count": ["listCatalogSteps", "0"] }
+  ]
+}
