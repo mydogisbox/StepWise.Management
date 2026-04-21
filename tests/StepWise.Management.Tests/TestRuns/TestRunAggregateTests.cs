@@ -1,59 +1,107 @@
+using System.Text.Json;
 using StepWise.Management.Domain.TestRuns;
 using Xunit;
 
 namespace StepWise.Management.Tests.TestRuns;
 
-public class TestRunAggregateTests
+public class WorkflowRunAggregateTests
 {
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private static readonly JsonElement EmptyResult = JsonDocument.Parse("{}").RootElement;
 
-    private static readonly RecordRun SampleRun = new(
-        Id: "run-1",
-        WorkflowId: "wf-1",
-        WorkflowName: "My Workflow",
-        Passed: true,
-        ResultJson: "{}",
-        StartedAt: DateTimeOffset.UtcNow,
-        DurationMs: 123);
-
-    // ── RecordRun ─────────────────────────────────────────────────────────────
+    // ── TriggerRun ────────────────────────────────────────────────────────────
 
     [Fact]
-    public void RecordRun_succeeds_on_new_stream()
+    public void TriggerRun_succeeds_on_new_stream()
     {
-        var result = TestRunAggregate.Dispatch(null, SampleRun);
+        var result = WorkflowRunAggregate.Dispatch(null, new TriggerRun("run-1", "wf-1"));
 
         Assert.True(result.IsSuccess);
         Assert.Single(result.Value);
-        Assert.IsType<RunRecorded>(result.Value.First());
+        Assert.IsType<RunTriggered>(result.Value.First());
     }
 
     [Fact]
-    public void RecordRun_fails_when_run_already_recorded()
+    public void TriggerRun_fails_when_run_already_exists()
     {
-        var state = TestRunAggregate.Apply(null, new RunRecorded(
-            SampleRun.Id, SampleRun.WorkflowId, SampleRun.WorkflowName,
-            SampleRun.Passed, SampleRun.ResultJson, SampleRun.StartedAt, SampleRun.DurationMs));
+        var state = Apply(new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow));
 
-        var result = TestRunAggregate.Dispatch(state, SampleRun);
+        var result = WorkflowRunAggregate.Dispatch(state, new TriggerRun("run-1", "wf-1"));
 
         Assert.True(result.IsError);
     }
 
     [Fact]
-    public void RecordRun_fails_when_id_is_empty()
+    public void TriggerRun_fails_when_id_is_empty()
     {
-        var cmd = SampleRun with { Id = "" };
-        var result = TestRunAggregate.Dispatch(null, cmd);
+        var result = WorkflowRunAggregate.Dispatch(null, new TriggerRun("", "wf-1"));
 
         Assert.True(result.IsError);
     }
 
     [Fact]
-    public void RecordRun_fails_when_workflow_id_is_empty()
+    public void TriggerRun_fails_when_workflow_id_is_empty()
     {
-        var cmd = SampleRun with { WorkflowId = "" };
-        var result = TestRunAggregate.Dispatch(null, cmd);
+        var result = WorkflowRunAggregate.Dispatch(null, new TriggerRun("run-1", ""));
+
+        Assert.True(result.IsError);
+    }
+
+    // ── RecordResult ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RecordResult_succeeds_when_pending()
+    {
+        var state = Apply(new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow));
+
+        var result = WorkflowRunAggregate.Dispatch(state, new RecordResult(true, EmptyResult, 100));
+
+        Assert.True(result.IsSuccess);
+        Assert.IsType<RunCompleted>(result.Value.First());
+    }
+
+    [Fact]
+    public void RecordResult_fails_when_already_completed()
+    {
+        var state = Apply(
+            new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow),
+            new RunCompleted("run-1", true, EmptyResult, 100));
+
+        var result = WorkflowRunAggregate.Dispatch(state, new RecordResult(true, EmptyResult, 100));
+
+        Assert.True(result.IsError);
+    }
+
+    // ── RecordFailure ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RecordFailure_succeeds_when_pending()
+    {
+        var state = Apply(new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow));
+
+        var result = WorkflowRunAggregate.Dispatch(state, new RecordFailure("Something exploded.", 50));
+
+        Assert.True(result.IsSuccess);
+        Assert.IsType<RunFailed>(result.Value.First());
+    }
+
+    [Fact]
+    public void RecordFailure_fails_when_already_failed()
+    {
+        var state = Apply(
+            new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow),
+            new RunFailed("run-1", "error", 50));
+
+        var result = WorkflowRunAggregate.Dispatch(state, new RecordFailure("another error", 50));
+
+        Assert.True(result.IsError);
+    }
+
+    [Fact]
+    public void RecordFailure_fails_when_error_is_empty()
+    {
+        var state = Apply(new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow));
+
+        var result = WorkflowRunAggregate.Dispatch(state, new RecordFailure("", 50));
 
         Assert.True(result.IsError);
     }
@@ -61,27 +109,51 @@ public class TestRunAggregateTests
     // ── Apply ─────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Apply_RunRecorded_sets_all_fields()
+    public void Apply_RunTriggered_sets_pending_state()
     {
-        var startedAt = DateTimeOffset.UtcNow;
-        var state = TestRunAggregate.Apply(null, new RunRecorded(
-            "run-1", "wf-1", "My Workflow", true, "{\"passed\":true}", startedAt, 456));
+        var triggeredAt = DateTimeOffset.UtcNow;
+        var state = WorkflowRunAggregate.Apply(null, new RunTriggered("run-1", "wf-1", triggeredAt));
 
         Assert.Equal("run-1", state.Id);
         Assert.Equal("wf-1", state.WorkflowId);
-        Assert.Equal("My Workflow", state.WorkflowName);
+        Assert.Equal("pending", state.Status);
+        Assert.Null(state.Passed);
+        Assert.Null(state.Result);
+        Assert.Null(state.Error);
+        Assert.Equal(triggeredAt, state.TriggeredAt);
+        Assert.Null(state.DurationMs);
+    }
+
+    [Fact]
+    public void Apply_RunCompleted_sets_completed_state()
+    {
+        var result = JsonDocument.Parse("{\"passed\":true}").RootElement;
+        var state = Apply(
+            new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow),
+            new RunCompleted("run-1", true, result, 456));
+
+        Assert.Equal("completed", state.Status);
         Assert.True(state.Passed);
-        Assert.Equal("{\"passed\":true}", state.ResultJson);
-        Assert.Equal(startedAt, state.StartedAt);
+        Assert.True(state.Result!.Value.GetProperty("passed").GetBoolean());
         Assert.Equal(456, state.DurationMs);
     }
 
     [Fact]
-    public void Apply_RunRecorded_preserves_failed_result()
+    public void Apply_RunFailed_sets_failed_state()
     {
-        var state = TestRunAggregate.Apply(null, new RunRecorded(
-            "run-1", "wf-1", "My Workflow", false, "{}", DateTimeOffset.UtcNow, 0));
+        var state = Apply(
+            new RunTriggered("run-1", "wf-1", DateTimeOffset.UtcNow),
+            new RunFailed("run-1", "boom", 99));
 
-        Assert.False(state.Passed);
+        Assert.Equal("failed", state.Status);
+        Assert.Equal("boom", state.Error);
+        Assert.Equal(99, state.DurationMs);
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static WorkflowRunState Apply(params WorkflowRunEvent[] events)
+        => events.Aggregate(
+            (WorkflowRunState?)null,
+            (state, e) => WorkflowRunAggregate.Apply(state, e))!;
 }

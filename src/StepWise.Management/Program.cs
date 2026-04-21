@@ -3,6 +3,7 @@ using CommandFramework.Core;
 using CommandFramework.Http;
 using CommandFramework.Postgres;
 using Npgsql;
+using StepWise.Management;
 using StepWise.Management.Domain.Catalogs;
 using StepWise.Management.Domain.CatalogSteps;
 using StepWise.Management.Domain.Targets;
@@ -15,6 +16,14 @@ var connectionString = builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Connection string 'Postgres' is not configured.");
 
 builder.Services.AddSingleton<IEventStore>(_ => new PostgresEventStore(connectionString));
+
+builder.Services.AddSingleton(sp => new AggregateHandler<WorkflowRunState, WorkflowRunEvent>(
+    WorkflowRunAggregate.Definition,
+    sp.GetRequiredService<IEventStore>(),
+    "runs",
+    new EventProcessor(WorkflowRunReactions.All)));
+
+builder.Services.AddHostedService<WorkflowExecutionService>();
 
 var app = builder.Build();
 
@@ -79,27 +88,18 @@ app.MapAggregate(
     deserializeCommand: WorkflowAggregate.DeserializeCommand,
     deserializeEvent: WorkflowAggregate.DeserializeEvent);
 
-// --- TestRun aggregate ---
-var testRunProcessor = new EventProcessor(TestRunReactions.All);
-var testRunHandler = new AggregateHandler<TestRunState, TestRunEvent>(
-    TestRunAggregate.Definition,
-    eventStore,
-    "runs",
-    testRunProcessor);
+// --- WorkflowRun aggregate ---
+var runHandler = app.Services.GetRequiredService<AggregateHandler<WorkflowRunState, WorkflowRunEvent>>();
 
 app.MapAggregate(
     name: "runs",
-    handler: testRunHandler,
-    deserializeCommand: TestRunAggregate.DeserializeCommand,
-    deserializeEvent: TestRunAggregate.DeserializeEvent);
+    handler: runHandler,
+    deserializeCommand: WorkflowRunAggregate.DeserializeCommand,
+    deserializeEvent: WorkflowRunAggregate.DeserializeEvent);
 
 // ── List endpoints (projection queries) ──────────────────────────────────────
 
-var jsonOptions = new JsonSerializerOptions
-{
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    PropertyNameCaseInsensitive = true
-};
+var jsonOptions = JsonConfig.Options;
 
 app.MapGet("/targets", async () =>
 {
@@ -177,127 +177,38 @@ app.MapGet("/workflows", async () =>
 
 // ── Workflow execution ────────────────────────────────────────────────────────
 
-app.MapPost("/api/workflows/{id}/run", async (string id) =>
+app.MapPost("/api/workflows/{id}/run", async (string id, TriggerRunRequest body) =>
 {
-    // Load WorkflowState
+    if (string.IsNullOrWhiteSpace(body?.RunId))
+        return Results.BadRequest("runId is required.");
+
     var workflowEvents = await eventStore.LoadAsync($"workflows/{id}");
     if (workflowEvents.Count == 0)
         return Results.NotFound($"Workflow '{id}' not found.");
 
-    var workflowState = Aggregate.Fold<WorkflowState, WorkflowEvent>(
-        workflowEvents.Select(e => WorkflowAggregate.DeserializeEvent(e.EventType, e.Payload)),
-        WorkflowAggregate.Apply)!;
-
-    // Resolve step definitions and targets from catalog steps
-    var stepDefs = new Dictionary<string, StepWise.Json.StepDefinition>(StringComparer.OrdinalIgnoreCase);
-    var targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-    foreach (var workflowStep in workflowState.Steps)
-    {
-        var catalogStepEvents = await eventStore.LoadAsync($"catalog-steps/{workflowStep.CatalogStepId}");
-        if (catalogStepEvents.Count == 0) continue;
-
-        var catalogStep = Aggregate.Fold<CatalogStepState, CatalogStepEvent>(
-            catalogStepEvents.Select(e => CatalogStepAggregate.DeserializeEvent(e.EventType, e.Payload)),
-            CatalogStepAggregate.Apply);
-        if (catalogStep == null) continue;
-
-        // Load target for base URL
-        var targetEvents = await eventStore.LoadAsync($"targets/{catalogStep.TargetId}");
-        if (targetEvents.Count > 0)
-        {
-            var targetState = Aggregate.Fold<TargetState, TargetEvent>(
-                targetEvents.Select(e => TargetAggregate.DeserializeEvent(e.EventType, e.Payload)),
-                TargetAggregate.Apply);
-            if (targetState != null)
-                targets[catalogStep.TargetId] = targetState.BaseUrl;
-        }
-
-        // Build step definition keyed by workflow step ID
-        var defaults = workflowStep.Defaults.HasValue
-            ? JsonSerializer.Deserialize<Dictionary<string, StepWise.Json.FieldValueDefinition>>(
-                workflowStep.Defaults.Value.GetRawText(), jsonOptions)
-            : null;
-
-        var catalogDefaults = catalogStep.Defaults.HasValue
-            ? JsonSerializer.Deserialize<Dictionary<string, StepWise.Json.FieldValueDefinition>>(
-                catalogStep.Defaults.Value.GetRawText(), jsonOptions)
-            : null;
-
-        // Merge catalog defaults with workflow step defaults
-        var mergedDefaults = catalogDefaults != null
-            ? new Dictionary<string, StepWise.Json.FieldValueDefinition>(catalogDefaults)
-            : new Dictionary<string, StepWise.Json.FieldValueDefinition>();
-        if (defaults != null)
-            foreach (var (k, v) in defaults)
-                mergedDefaults[k] = v;
-
-        stepDefs[workflowStep.Id] = new StepWise.Json.StepDefinition
-        {
-            Target = catalogStep.TargetId,
-            Method = catalogStep.Method,
-            Path = catalogStep.Path,
-            Defaults = mergedDefaults.Count > 0 ? mergedDefaults : null
-        };
-    }
-
-    // Build WorkflowDefinition with step invocations
-    var workflowDef = new StepWise.Json.WorkflowDefinition(
-        Name: workflowState.Name,
-        Steps: workflowState.Steps
-            .Select(s => new StepWise.Json.StepInvocation { Step = s.Id })
-            .ToList(),
-        Assertions: workflowState.Assertions.Count > 0 ? workflowState.Assertions : null);
-
-    // Run the workflow
-    var startedAt = DateTimeOffset.UtcNow;
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-    StepWise.Json.WorkflowResult result;
-    try
-    {
-        result = await StepWise.Json.JsonWorkflowRunner.RunAsync(workflowDef, stepDefs, targets);
-    }
-    catch (Exception ex)
-    {
-        stopwatch.Stop();
-        result = new StepWise.Json.WorkflowResult(
-            workflowState.Name,
-            false,
-            new List<StepWise.Json.StepResult>(),
-            new List<string> { ex.Message },
-            new Dictionary<string, object?>());
-    }
-    finally
-    {
-        stopwatch.Stop();
-    }
-
-    var durationMs = stopwatch.ElapsedMilliseconds;
-    var runId = Guid.NewGuid().ToString();
-    var resultJson = JsonSerializer.Serialize(result, jsonOptions);
-
-    var recordBatch = new CommandBatch(
+    var runId = body.RunId;
+    var batch = new CommandBatch(
         AggregateId: runId,
-        Commands: new List<CommandEnvelope>
-        {
-            new CommandEnvelope(
-                Type: nameof(RecordRun),
-                Payload: JsonSerializer.SerializeToElement(new RecordRun(
-                    Id: runId,
-                    WorkflowId: id,
-                    WorkflowName: workflowState.Name,
-                    Passed: result.Passed,
-                    ResultJson: resultJson,
-                    StartedAt: startedAt,
-                    DurationMs: durationMs), jsonOptions))
-        });
+        Commands: [new CommandEnvelope(
+            Type: nameof(TriggerRun),
+            Payload: JsonSerializer.SerializeToElement(
+                new TriggerRun(runId, id), jsonOptions))]);
 
-    await testRunHandler.ExecuteAsync(recordBatch,
-        TestRunAggregate.DeserializeCommand,
-        TestRunAggregate.DeserializeEvent);
+    var result = await runHandler.ExecuteAsync(
+        batch,
+        WorkflowRunAggregate.DeserializeCommand,
+        WorkflowRunAggregate.DeserializeEvent);
 
-    return Results.Ok(new { runId, result });
+    if (result.IsError)
+    {
+        // Idempotent: if the run stream already exists, a repeat call succeeds
+        var existing = await eventStore.LoadAsync($"runs/{runId}");
+        if (existing.Count > 0)
+            return Results.Ok(new { runId });
+        return Results.UnprocessableEntity(result.Error);
+    }
+
+    return Results.Ok(new { runId });
 });
 
 // ── Ping ──────────────────────────────────────────────────────────────────────
@@ -305,5 +216,7 @@ app.MapPost("/api/workflows/{id}/run", async (string id) =>
 app.MapGet("/api/ping", () => Results.Ok(new { pong = true, service = "StepWise.Management" }));
 
 app.Run();
+
+record TriggerRunRequest(string RunId);
 
 public partial class Program { }

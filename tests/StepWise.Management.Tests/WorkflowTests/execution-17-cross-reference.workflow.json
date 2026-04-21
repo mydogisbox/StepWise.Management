@@ -22,9 +22,15 @@
       }
     },
     { "step": "postWorkflowCommands" },
-    { "step": "runWorkflow" }
+    { "step": "runWorkflow" },
+    {
+      "poll": "getRun",
+      "until": { "equal": ["getRun.status", "completed"] },
+      "intervalMs": 200,
+      "timeoutMs": 10000
+    }
   ],
   "assertions": [
-    { "equal": ["runWorkflow.result.passed", "false"] }
+    { "equal": ["getRun.result.passed", "false"] }
   ]
 }

@@ -217,6 +217,9 @@
       "path": "/api/workflows/{workflowId}/run",
       "pathParams": {
         "workflowId": { "from": "createWorkflow.payload.id" }
+      },
+      "defaults": {
+        "runId": { "generated": "guid" }
       }
     },
     "getRun": {

@@ -1,29 +1,21 @@
+using System.Text.Json;
 using CommandFramework.Core;
 using Dapper;
 using Npgsql;
 
 namespace StepWise.Management.Domain.TestRuns;
 
-public static class TestRunReactions
+public static class WorkflowRunReactions
 {
     public static readonly IReadOnlyList<EventReaction> All =
     [
-        EventReaction.On<RunRecorded>(async (e, tx) =>
+        EventReaction.On<RunTriggered>(async (e, tx) =>
         {
             var conn = ((NpgsqlTransaction)tx).Connection!;
-            await conn.ExecuteAsync(@"
-                INSERT INTO test_run_summaries (id, workflow_id, workflow_name, passed, started_at, duration_ms)
-                VALUES (@id, @workflowId, @workflowName, @passed, @startedAt, @durationMs)
-                ON CONFLICT (id) DO NOTHING",
-                new
-                {
-                    id = e.Id,
-                    workflowId = e.WorkflowId,
-                    workflowName = e.WorkflowName,
-                    passed = e.Passed,
-                    startedAt = e.StartedAt,
-                    durationMs = e.DurationMs
-                },
+            var payload = JsonSerializer.Serialize(new { runId = e.Id, workflowId = e.WorkflowId }, JsonConfig.Options);
+            await conn.ExecuteAsync(
+                "INSERT INTO outbox (event_type, payload) VALUES (@type, @payload::jsonb)",
+                new { type = nameof(RunTriggered), payload },
                 tx);
         })
     ];

@@ -1,5 +1,5 @@
 {
-  "name": "Execution_16_RunWorkflow",
+  "name": "Execution_19_RunResultStoredAsObject",
   "steps": [
     { "workflow": "SetupCatalogWithStep" },
     { "build": "createWorkflow" },
@@ -7,7 +7,7 @@
       "build": "appendStep",
       "with": {
         "payload": { "static": {
-          "id": { "static": "e1600001-0000-0000-0000-000000000000" }
+          "id": { "static": "e1900001-0000-0000-0000-000000000000" }
         }}
       }
     },
@@ -21,6 +21,8 @@
     }
   ],
   "assertions": [
-    { "equal": ["getRun.result.passed", "true"] }
+    { "equal": ["getRun.passed", "true"] },
+    { "equal": ["getRun.result.passed", "true"] },
+    { "count": ["getRun.result.steps", "1"] }
   ]
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CommandFramework.Core;
+using StepWise.Management;
 
 namespace StepWise.Management.Domain.Targets;
 
@@ -17,12 +18,6 @@ public record ArchiveTarget();
 
 public static class TargetAggregate
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
-    };
-
     public static Result<IEnumerable<TargetEvent>> Handle(TargetState? state, CreateTarget cmd)
     {
         if (state != null) return "Target already exists.";
@@ -57,16 +52,16 @@ public static class TargetAggregate
     public static object DeserializeCommand(string type, JsonElement payload)
         => type switch
         {
-            nameof(CreateTarget) => payload.Deserialize<CreateTarget>(JsonOptions)!,
-            nameof(ArchiveTarget) => payload.Deserialize<ArchiveTarget>(JsonOptions)!,
+            nameof(CreateTarget) => payload.Deserialize<CreateTarget>(JsonConfig.Options)!,
+            nameof(ArchiveTarget) => payload.Deserialize<ArchiveTarget>(JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
         };
 
     public static TargetEvent DeserializeEvent(string type, string payload)
         => type switch
         {
-            nameof(TargetCreated) => JsonSerializer.Deserialize<TargetCreated>(payload, JsonOptions)!,
-            nameof(TargetArchived) => JsonSerializer.Deserialize<TargetArchived>(payload, JsonOptions)!,
+            nameof(TargetCreated) => JsonSerializer.Deserialize<TargetCreated>(payload, JsonConfig.Options)!,
+            nameof(TargetArchived) => JsonSerializer.Deserialize<TargetArchived>(payload, JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 

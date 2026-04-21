@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CommandFramework.Core;
 using StepWise.Json;
+using StepWise.Management;
 
 namespace StepWise.Management.Domain.Catalogs;
 
@@ -18,12 +19,6 @@ public record ArchiveCatalog();
 
 public static class CatalogAggregate
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
-    };
-
     public static Result<IEnumerable<CatalogEvent>> Handle(CatalogState? state, CreateCatalog cmd)
     {
         if (state != null)
@@ -60,16 +55,16 @@ public static class CatalogAggregate
     public static object DeserializeCommand(string type, JsonElement payload)
         => type switch
         {
-            nameof(CreateCatalog) => payload.Deserialize<CreateCatalog>(JsonOptions)!,
-            nameof(ArchiveCatalog) => payload.Deserialize<ArchiveCatalog>(JsonOptions)!,
+            nameof(CreateCatalog) => payload.Deserialize<CreateCatalog>(JsonConfig.Options)!,
+            nameof(ArchiveCatalog) => payload.Deserialize<ArchiveCatalog>(JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
         };
 
     public static CatalogEvent DeserializeEvent(string type, string payload)
         => type switch
         {
-            nameof(CatalogCreated) => JsonSerializer.Deserialize<CatalogCreated>(payload, JsonOptions)!,
-            nameof(CatalogArchived) => JsonSerializer.Deserialize<CatalogArchived>(payload, JsonOptions)!,
+            nameof(CatalogCreated) => JsonSerializer.Deserialize<CatalogCreated>(payload, JsonConfig.Options)!,
+            nameof(CatalogArchived) => JsonSerializer.Deserialize<CatalogArchived>(payload, JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 

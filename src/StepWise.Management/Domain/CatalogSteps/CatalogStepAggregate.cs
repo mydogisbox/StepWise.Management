@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommandFramework.Core;
+using StepWise.Management;
 
 namespace StepWise.Management.Domain.CatalogSteps;
 
@@ -40,12 +41,6 @@ public record ArchiveStep();
 
 public static class CatalogStepAggregate
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
-    };
-
     public static Result<IEnumerable<CatalogStepEvent>> Handle(CatalogStepState? state, UpsertStep cmd)
     {
         if (string.IsNullOrWhiteSpace(cmd.CatalogId)) return "CatalogId is required.";
@@ -83,16 +78,16 @@ public static class CatalogStepAggregate
     public static object DeserializeCommand(string type, JsonElement payload)
         => type switch
         {
-            nameof(UpsertStep) => payload.Deserialize<UpsertStep>(JsonOptions)!,
-            nameof(ArchiveStep) => payload.Deserialize<ArchiveStep>(JsonOptions)!,
+            nameof(UpsertStep) => payload.Deserialize<UpsertStep>(JsonConfig.Options)!,
+            nameof(ArchiveStep) => payload.Deserialize<ArchiveStep>(JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
         };
 
     public static CatalogStepEvent DeserializeEvent(string type, string payload)
         => type switch
         {
-            nameof(CatalogStepUpserted) => JsonSerializer.Deserialize<CatalogStepUpserted>(payload, JsonOptions)!,
-            nameof(CatalogStepArchived) => JsonSerializer.Deserialize<CatalogStepArchived>(payload, JsonOptions)!,
+            nameof(CatalogStepUpserted) => JsonSerializer.Deserialize<CatalogStepUpserted>(payload, JsonConfig.Options)!,
+            nameof(CatalogStepArchived) => JsonSerializer.Deserialize<CatalogStepArchived>(payload, JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CommandFramework.Core;
 using StepWise.Json;
+using StepWise.Management;
 
 namespace StepWise.Management.Domain.Workflows;
 
@@ -46,12 +47,6 @@ public record UnarchiveWorkflow();
 
 public static class WorkflowAggregate
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
-    };
-
     public static Result<IEnumerable<WorkflowEvent>> Handle(WorkflowState? state, CreateWorkflow cmd)
     {
         if (state != null) return "Workflow already exists.";
@@ -182,30 +177,30 @@ public static class WorkflowAggregate
     public static object DeserializeCommand(string type, JsonElement payload)
         => type switch
         {
-            nameof(CreateWorkflow) => payload.Deserialize<CreateWorkflow>(JsonOptions)!,
-            nameof(RenameWorkflow) => payload.Deserialize<RenameWorkflow>(JsonOptions)!,
-            nameof(AppendStep) => payload.Deserialize<AppendStep>(JsonOptions)!,
-            nameof(InsertStepBefore) => payload.Deserialize<InsertStepBefore>(JsonOptions)!,
-            nameof(RemoveStep) => payload.Deserialize<RemoveStep>(JsonOptions)!,
-            nameof(SetStepDefaults) => payload.Deserialize<SetStepDefaults>(JsonOptions)!,
-            nameof(AddAssertion) => payload.Deserialize<AddAssertion>(JsonOptions)!,
-            nameof(ArchiveWorkflow) => payload.Deserialize<ArchiveWorkflow>(JsonOptions)!,
-            nameof(UnarchiveWorkflow) => payload.Deserialize<UnarchiveWorkflow>(JsonOptions)!,
+            nameof(CreateWorkflow) => payload.Deserialize<CreateWorkflow>(JsonConfig.Options)!,
+            nameof(RenameWorkflow) => payload.Deserialize<RenameWorkflow>(JsonConfig.Options)!,
+            nameof(AppendStep) => payload.Deserialize<AppendStep>(JsonConfig.Options)!,
+            nameof(InsertStepBefore) => payload.Deserialize<InsertStepBefore>(JsonConfig.Options)!,
+            nameof(RemoveStep) => payload.Deserialize<RemoveStep>(JsonConfig.Options)!,
+            nameof(SetStepDefaults) => payload.Deserialize<SetStepDefaults>(JsonConfig.Options)!,
+            nameof(AddAssertion) => payload.Deserialize<AddAssertion>(JsonConfig.Options)!,
+            nameof(ArchiveWorkflow) => payload.Deserialize<ArchiveWorkflow>(JsonConfig.Options)!,
+            nameof(UnarchiveWorkflow) => payload.Deserialize<UnarchiveWorkflow>(JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
         };
 
     public static WorkflowEvent DeserializeEvent(string type, string payload)
         => type switch
         {
-            nameof(WorkflowCreated) => JsonSerializer.Deserialize<WorkflowCreated>(payload, JsonOptions)!,
-            nameof(WorkflowRenamed) => JsonSerializer.Deserialize<WorkflowRenamed>(payload, JsonOptions)!,
-            nameof(WorkflowStepAppended) => JsonSerializer.Deserialize<WorkflowStepAppended>(payload, JsonOptions)!,
-            nameof(WorkflowStepInsertedBefore) => JsonSerializer.Deserialize<WorkflowStepInsertedBefore>(payload, JsonOptions)!,
-            nameof(WorkflowStepRemoved) => JsonSerializer.Deserialize<WorkflowStepRemoved>(payload, JsonOptions)!,
-            nameof(WorkflowStepDefaultsSet) => JsonSerializer.Deserialize<WorkflowStepDefaultsSet>(payload, JsonOptions)!,
-            nameof(AssertionAdded) => JsonSerializer.Deserialize<AssertionAdded>(payload, JsonOptions)!,
-            nameof(WorkflowArchived) => JsonSerializer.Deserialize<WorkflowArchived>(payload, JsonOptions)!,
-            nameof(WorkflowUnarchived) => JsonSerializer.Deserialize<WorkflowUnarchived>(payload, JsonOptions)!,
+            nameof(WorkflowCreated) => JsonSerializer.Deserialize<WorkflowCreated>(payload, JsonConfig.Options)!,
+            nameof(WorkflowRenamed) => JsonSerializer.Deserialize<WorkflowRenamed>(payload, JsonConfig.Options)!,
+            nameof(WorkflowStepAppended) => JsonSerializer.Deserialize<WorkflowStepAppended>(payload, JsonConfig.Options)!,
+            nameof(WorkflowStepInsertedBefore) => JsonSerializer.Deserialize<WorkflowStepInsertedBefore>(payload, JsonConfig.Options)!,
+            nameof(WorkflowStepRemoved) => JsonSerializer.Deserialize<WorkflowStepRemoved>(payload, JsonConfig.Options)!,
+            nameof(WorkflowStepDefaultsSet) => JsonSerializer.Deserialize<WorkflowStepDefaultsSet>(payload, JsonConfig.Options)!,
+            nameof(AssertionAdded) => JsonSerializer.Deserialize<AssertionAdded>(payload, JsonConfig.Options)!,
+            nameof(WorkflowArchived) => JsonSerializer.Deserialize<WorkflowArchived>(payload, JsonConfig.Options)!,
+            nameof(WorkflowUnarchived) => JsonSerializer.Deserialize<WorkflowUnarchived>(payload, JsonConfig.Options)!,
             _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 

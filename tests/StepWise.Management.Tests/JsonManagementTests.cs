@@ -87,4 +87,7 @@ public class JsonManagementTests : JsonWorkflowTestBase
 
     [Fact] public Task Execution_18_ExecuteWithStepDefaults_DefaultsInOutput() =>
         RunWorkflowAsync("WorkflowTests/execution-18-assertion.workflow.json");
+
+    [Fact] public Task Execution_19_RunResultStoredAsObject() =>
+        RunWorkflowAsync("WorkflowTests/execution-19-run-result-stored-as-object.workflow.json");
 }
