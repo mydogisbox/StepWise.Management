@@ -1,0 +1,12 @@
+{
+  "name": "Catalog_16_ListExcludesArchivedCatalog",
+  "steps": [
+    { "build": "createCatalog" },
+    { "build": "archiveCatalog" },
+    { "step": "postCatalogCommands" },
+    { "step": "listCatalogs" }
+  ],
+  "assertions": [
+    { "empty": "$listCatalogs[?name=createCatalog.payload.name]" }
+  ]
+}

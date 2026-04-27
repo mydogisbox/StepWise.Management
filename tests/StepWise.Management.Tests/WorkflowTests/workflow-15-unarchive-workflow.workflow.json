@@ -8,6 +8,6 @@
     { "step": "getWorkflow" }
   ],
   "assertions": [
-    { "equal": ["getWorkflow.isArchived", "false"] }
+    { "equal": ["$getWorkflow.isArchived", "false"] }
   ]
 }

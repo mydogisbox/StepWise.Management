@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StepWise Management — Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans text-sm">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-56 bg-gray-900 text-gray-100 flex flex-col flex-shrink-0">
+    <div class="px-6 py-5 border-b border-gray-700">
+      <h1 class="text-lg font-bold tracking-tight">StepWise</h1>
+      <p class="text-xs text-gray-400 mt-0.5">Management</p>
+    </div>
+    <nav class="flex-1 py-4 space-y-1 px-3">
+      <button onclick="showPage('catalogs')" id="nav-catalogs"
+        class="nav-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
+        Catalogs
+      </button>
+      <button onclick="showPage('targets')" id="nav-targets"
+        class="nav-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
+        Targets
+      </button>
+      <button onclick="showPage('workflows')" id="nav-workflows"
+        class="nav-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
+        Workflows
+      </button>
+      <button onclick="showPage('runs')" id="nav-runs"
+        class="nav-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
+        Runs
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ===== CATALOGS ===== -->
+    <div id="page-catalogs" class="page flex flex-1 overflow-hidden">
+      <!-- List -->
+      <div id="catalogs-list-col" class="flex-1 overflow-auto p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">Catalogs</h2>
+          <button onclick="openNewCatalogModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">+ New Catalog</button>
+        </div>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogPanel('user-api')">
+                <td class="px-6 py-4 font-medium text-gray-900">User API</td>
+                <td class="px-6 py-4 text-gray-500">User management endpoints</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button class="text-indigo-600 hover:underline">Edit</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogPanel('orders-api')">
+                <td class="px-6 py-4 font-medium text-gray-900">Orders API</td>
+                <td class="px-6 py-4 text-gray-500">Order creation and retrieval</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button class="text-indigo-600 hover:underline">Edit</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogPanel('auth-api')">
+                <td class="px-6 py-4 font-medium text-gray-900">Auth API</td>
+                <td class="px-6 py-4 text-gray-500">Authentication flows</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button class="text-indigo-600 hover:underline">Edit</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Catalog detail panel -->
+      <div id="catalog-panel" class="hidden w-[480px] border-l border-gray-200 bg-white flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold" id="catalog-panel-name">User API</h3>
+          <button onclick="closeCatalogPanel()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <p class="text-xs text-gray-500 mb-1">Description</p>
+          <p class="text-sm text-gray-700" id="catalog-panel-desc">User management endpoints</p>
+          <div class="flex gap-2 mt-3">
+            <button class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50">Edit</button>
+            <button class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50 text-yellow-700">Archive</button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-auto">
+          <div class="flex items-center justify-between px-6 py-3 border-b border-gray-100">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Steps</span>
+            <button onclick="openNewStepModal()" class="text-xs text-indigo-600 hover:underline">+ Add Step</button>
+          </div>
+          <div id="catalog-steps-list" class="divide-y divide-gray-100">
+            <div class="px-6 py-3 hover:bg-gray-50 cursor-pointer" onclick="openStepPanel('createUser')">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="font-medium text-gray-900">createUser</span>
+                  <span class="ml-2 text-xs text-gray-400 font-mono">POST /users</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">prod-api</span>
+                  <button class="text-gray-400 hover:text-gray-600">›</button>
+                </div>
+              </div>
+            </div>
+            <div class="px-6 py-3 hover:bg-gray-50 cursor-pointer" onclick="openStepPanel('getUser')">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="font-medium text-gray-900">getUser</span>
+                  <span class="ml-2 text-xs text-gray-400 font-mono">GET /users/{id}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">prod-api</span>
+                  <button class="text-gray-400 hover:text-gray-600">›</button>
+                </div>
+              </div>
+            </div>
+            <div class="px-6 py-3 hover:bg-gray-50 cursor-pointer" onclick="openStepPanel('listUsers')">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="font-medium text-gray-900">listUsers</span>
+                  <span class="ml-2 text-xs text-gray-400 font-mono">GET /users</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">prod-api</span>
+                  <button class="text-gray-400 hover:text-gray-600">›</button>
+                </div>
+              </div>
+            </div>
+            <div class="px-6 py-3 hover:bg-gray-50 cursor-pointer opacity-50">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="font-medium text-gray-900">deleteUser</span>
+                  <span class="ml-2 text-xs text-gray-400 font-mono">DELETE /users/{id}</span>
+                  <span class="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">archived</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step detail panel -->
+      <div id="step-panel" class="hidden w-[440px] border-l border-gray-200 bg-white flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h3 class="text-lg font-semibold" id="step-panel-name">createUser</h3>
+            <p class="text-xs text-gray-400 font-mono" id="step-panel-method">POST /users</p>
+          </div>
+          <button onclick="closeStepPanel()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div class="flex-1 overflow-auto p-6 space-y-5">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Target</label>
+              <select class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                <option>prod-api</option>
+                <option>staging-api</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Method</label>
+              <select class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                <option>GET</option>
+                <option selected>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+                <option>HEAD</option>
+                <option>OPTIONS</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Path</label>
+            <input type="text" value="/users" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono" />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-medium text-gray-500">Polling</label>
+              <input type="checkbox" id="polling-toggle" onchange="togglePolling()" class="rounded" />
+            </div>
+            <div id="polling-settings" class="hidden grid grid-cols-2 gap-3 mt-2">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Retry count</label>
+                <input type="number" value="3" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Retry interval (ms)</label>
+                <input type="number" value="1000" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Defaults (JSON)</label>
+            <textarea rows="5" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono">{
+  "name": { "unfilled": true },
+  "email": { "unfilled": true },
+  "role": { "static": "user" }
+}</textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Request Shape (JSON)</label>
+            <textarea rows="4" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono">{
+  "name": "string",
+  "email": "string",
+  "role": "string"
+}</textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Response Shape (JSON)</label>
+            <textarea rows="4" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono">{
+  "id": "string",
+  "name": "string",
+  "email": "string",
+  "createdAt": "string"
+}</textarea>
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Save</button>
+            <button onclick="closeStepPanel()" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
+            <button class="ml-auto px-3 py-2 text-yellow-600 border border-yellow-300 rounded text-sm hover:bg-yellow-50">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TARGETS ===== -->
+    <div id="page-targets" class="page hidden flex-1 overflow-auto p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Targets</h2>
+        <button onclick="openNewTargetModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">+ New Target</button>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <input type="checkbox" id="show-archived-targets" onchange="toggleArchivedTargets()" class="rounded" />
+          Show archived
+        </label>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base URL</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200" id="targets-tbody">
+            <tr id="target-row-prod" class="hover:bg-gray-50">
+              <td class="px-6 py-4" id="target-name-prod">
+                <span class="target-display font-medium text-gray-900">prod-api</span>
+                <input class="target-edit hidden border border-gray-300 rounded px-2 py-1 text-sm w-32" value="prod-api" />
+              </td>
+              <td class="px-6 py-4" id="target-url-prod">
+                <span class="target-display text-gray-600 font-mono text-xs">https://api.example.com</span>
+                <input class="target-edit hidden border border-gray-300 rounded px-2 py-1 text-sm w-56 font-mono" value="https://api.example.com" />
+              </td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Apr 10, 2026</td>
+              <td class="px-6 py-4 text-right space-x-3">
+                <button onclick="editTarget('prod')" class="target-display text-indigo-600 hover:underline">Edit</button>
+                <button onclick="saveTarget('prod')" class="target-edit hidden text-green-600 hover:underline">Save</button>
+                <button onclick="cancelTarget('prod')" class="target-edit hidden text-gray-500 hover:underline">Cancel</button>
+                <button class="text-yellow-600 hover:underline">Archive</button>
+              </td>
+            </tr>
+            <tr id="target-row-staging" class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <span class="target-display font-medium text-gray-900">staging-api</span>
+                <input class="target-edit hidden border border-gray-300 rounded px-2 py-1 text-sm w-32" value="staging-api" />
+              </td>
+              <td class="px-6 py-4">
+                <span class="target-display text-gray-600 font-mono text-xs">https://staging.example.com</span>
+                <input class="target-edit hidden border border-gray-300 rounded px-2 py-1 text-sm w-56 font-mono" value="https://staging.example.com" />
+              </td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Apr 12, 2026</td>
+              <td class="px-6 py-4 text-right space-x-3">
+                <button onclick="editTarget('staging')" class="target-display text-indigo-600 hover:underline">Edit</button>
+                <button onclick="saveTarget('staging')" class="target-edit hidden text-green-600 hover:underline">Save</button>
+                <button onclick="cancelTarget('staging')" class="target-edit hidden text-gray-500 hover:underline">Cancel</button>
+                <button class="text-yellow-600 hover:underline">Archive</button>
+              </td>
+            </tr>
+            <tr id="target-row-local" class="hover:bg-gray-50 archived-target hidden opacity-60">
+              <td class="px-6 py-4">
+                <span class="font-medium text-gray-900">localhost</span>
+                <span class="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">archived</span>
+              </td>
+              <td class="px-6 py-4 text-gray-600 font-mono text-xs">http://localhost:5000</td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Mar 28, 2026</td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-green-600 hover:underline">Unarchive</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== WORKFLOWS ===== -->
+    <div id="page-workflows" class="page hidden flex flex-1 overflow-hidden">
+      <!-- List -->
+      <div class="flex-1 overflow-auto p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">Workflows</h2>
+          <button onclick="openNewWorkflowModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">+ New Workflow</button>
+        </div>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">Create and verify user</td>
+                <td class="px-6 py-4 text-gray-500">Creates a user and asserts the response</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button onclick="openWorkflowPanel()" class="text-indigo-600 hover:underline">Edit</button>
+                  <button onclick="showPage('run')" class="text-green-600 hover:underline">Run</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">Order flow</td>
+                <td class="px-6 py-4 text-gray-500">Full order creation to confirmation</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button onclick="openWorkflowPanel()" class="text-indigo-600 hover:underline">Edit</button>
+                  <button onclick="showPage('run')" class="text-green-600 hover:underline">Run</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium text-gray-900">Auth token check</td>
+                <td class="px-6 py-4 text-gray-500">Verifies token issuance and expiry</td>
+                <td class="px-6 py-4 text-right space-x-3">
+                  <button onclick="openWorkflowPanel()" class="text-indigo-600 hover:underline">Edit</button>
+                  <button onclick="showPage('run')" class="text-green-600 hover:underline">Run</button>
+                  <button class="text-yellow-600 hover:underline">Archive</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Workflow edit panel -->
+      <div id="workflow-panel" class="hidden w-[520px] border-l border-gray-200 bg-white flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold">Create and verify user</h3>
+          <div class="flex items-center gap-2">
+            <button onclick="showPage('run')" class="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700">Run</button>
+            <button onclick="closeWorkflowPanel()" class="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-auto">
+          <!-- Metadata -->
+          <div class="px-6 py-4 border-b border-gray-100 space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+              <input type="text" value="Create and verify user" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Description</label>
+              <textarea rows="2" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">Creates a user and asserts the response</textarea>
+            </div>
+          </div>
+
+          <!-- Steps -->
+          <div class="px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Steps</span>
+              <button onclick="openAddStepModal()" class="text-xs text-indigo-600 hover:underline">+ Add Step</button>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 p-2 border border-gray-200 rounded bg-gray-50 group">
+                <span class="text-gray-300 cursor-grab">⠿</span>
+                <div class="flex-1">
+                  <span class="font-medium text-sm">createUser</span>
+                  <span class="text-xs text-gray-400 ml-2">User API</span>
+                </div>
+                <button class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">Remove</button>
+              </div>
+              <div class="flex items-center gap-2 p-2 border border-gray-200 rounded bg-gray-50 group">
+                <span class="text-gray-300 cursor-grab">⠿</span>
+                <div class="flex-1">
+                  <span class="font-medium text-sm">getUser</span>
+                  <span class="text-xs text-gray-400 ml-2">User API</span>
+                </div>
+                <button class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">Remove</button>
+              </div>
+              <div class="flex items-center gap-2 p-2 border border-orange-200 rounded bg-orange-50 group">
+                <span class="text-gray-300 cursor-grab">⠿</span>
+                <div class="flex-1">
+                  <span class="font-medium text-sm">listOrders</span>
+                  <span class="text-xs text-gray-400 ml-2">Orders API</span>
+                  <span class="ml-2 text-xs text-orange-600">⚠ target not available</span>
+                </div>
+                <button class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assertions -->
+          <div class="px-6 py-4">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assertions</span>
+              <button class="text-xs text-indigo-600 hover:underline">+ Add Assertion</button>
+            </div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 p-2 border border-gray-200 rounded bg-gray-50 group">
+                <span class="text-gray-300 cursor-grab">⠿</span>
+                <div class="flex-1 font-mono text-xs">
+                  <span class="text-purple-700">equal</span>
+                  <span class="text-gray-500 mx-1">$getUser.email</span>
+                  <span class="text-gray-400">=</span>
+                  <span class="text-green-700 mx-1">"test@example.com"</span>
+                </div>
+                <button class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">Remove</button>
+              </div>
+              <div class="flex items-center gap-2 p-2 border border-gray-200 rounded bg-gray-50 group">
+                <span class="text-gray-300 cursor-grab">⠿</span>
+                <div class="flex-1 font-mono text-xs">
+                  <span class="text-purple-700">notEmpty</span>
+                  <span class="text-gray-500 mx-1">$getUser.id</span>
+                </div>
+                <button class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex gap-2">
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Save</button>
+          <button onclick="closeWorkflowPanel()" class="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RUNS ===== -->
+    <div id="page-runs" class="page hidden flex-1 overflow-auto p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Runs</h2>
+        <button class="text-sm text-indigo-600 hover:underline">Refresh</button>
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Workflow</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 font-medium text-gray-900">Create and verify user</td>
+              <td class="px-6 py-4"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">PASS</span></td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Apr 26, 2026 09:14</td>
+              <td class="px-6 py-4 text-gray-500">342ms</td>
+              <td class="px-6 py-4 text-right"><button onclick="showPage('run-detail')" class="text-indigo-600 hover:underline">View</button></td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 font-medium text-gray-900">Order flow</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">FAIL</span>
+                <span class="ml-2 text-xs text-red-600">Assertion failed: $getOrder.status == "confirmed"</span>
+              </td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Apr 26, 2026 09:10</td>
+              <td class="px-6 py-4 text-gray-500">891ms</td>
+              <td class="px-6 py-4 text-right"><button onclick="showPage('run-detail')" class="text-indigo-600 hover:underline">View</button></td>
+            </tr>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 font-medium text-gray-900">Auth token check</td>
+              <td class="px-6 py-4"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">PASS</span></td>
+              <td class="px-6 py-4 text-gray-400 text-xs">Apr 26, 2026 08:55</td>
+              <td class="px-6 py-4 text-gray-500">124ms</td>
+              <td class="px-6 py-4 text-right"><button onclick="showPage('run-detail')" class="text-indigo-600 hover:underline">View</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== RUN PAGE (parameters + live + detail) ===== -->
+    <div id="page-run" class="page hidden flex-1 overflow-auto p-8">
+      <div class="max-w-2xl mx-auto">
+        <div class="flex items-center gap-3 mb-6">
+          <button onclick="showPage('workflows')" class="text-gray-400 hover:text-gray-600 text-lg">←</button>
+          <h2 class="text-2xl font-bold">Run: Create and verify user</h2>
+        </div>
+
+        <!-- Parameters -->
+        <div class="bg-white rounded-lg shadow p-6 mb-4">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">Run Parameters</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">
+                createUser › name
+                <span class="ml-1 text-red-500">required</span>
+              </label>
+              <input type="text" placeholder="Enter value..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">
+                createUser › email
+                <span class="ml-1 text-red-500">required</span>
+              </label>
+              <input type="text" placeholder="Enter value..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">
+                createUser › role
+                <span class="ml-1 text-gray-400">optional — default: "user"</span>
+              </label>
+              <input type="text" placeholder="user" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <button onclick="startRun()" class="mt-4 px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700">Start Run</button>
+        </div>
+
+        <!-- Live execution (shown after Start Run) -->
+        <div id="run-live" class="hidden bg-white rounded-lg shadow p-6 mb-4">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">Execution</h3>
+          <div class="space-y-2" id="run-steps-live">
+            <div class="flex items-center gap-3 p-3 rounded border border-green-200 bg-green-50">
+              <span class="text-green-600">✓</span>
+              <span class="font-medium text-sm">createUser</span>
+              <span class="text-xs text-green-600 ml-auto">completed · 142ms</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 rounded border border-blue-200 bg-blue-50">
+              <span class="text-blue-600 animate-pulse">●</span>
+              <span class="font-medium text-sm">getUser</span>
+              <span class="text-xs text-blue-600 ml-auto">running…</span>
+            </div>
+            <div class="flex items-center gap-3 p-3 rounded border border-gray-200 bg-gray-50 opacity-50">
+              <span class="text-gray-400">○</span>
+              <span class="font-medium text-sm text-gray-400">listOrders</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail (shown after completion) -->
+        <div id="run-detail-inline" class="hidden bg-white rounded-lg shadow p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">PASS</span>
+            <span class="text-sm text-gray-500">3 steps · 344ms · Apr 26, 2026 09:22</span>
+          </div>
+          <div class="space-y-2">
+            <details class="border border-gray-200 rounded">
+              <summary class="px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                  <span class="text-green-600 text-xs">✓</span>
+                  <span class="font-medium text-sm">createUser</span>
+                </div>
+                <span class="text-xs text-gray-400">142ms</span>
+              </summary>
+              <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p class="text-xs font-medium text-gray-500 mb-1">Response</p>
+                <pre class="text-xs font-mono text-gray-700">{ "id": "usr_abc123", "name": "Alice", "email": "alice@example.com", "createdAt": "2026-04-26T09:22:01Z" }</pre>
+              </div>
+            </details>
+            <details class="border border-gray-200 rounded">
+              <summary class="px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                  <span class="text-green-600 text-xs">✓</span>
+                  <span class="font-medium text-sm">getUser</span>
+                </div>
+                <span class="text-xs text-gray-400">89ms</span>
+              </summary>
+              <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p class="text-xs font-medium text-gray-500 mb-1">Response</p>
+                <pre class="text-xs font-mono text-gray-700">{ "id": "usr_abc123", "name": "Alice", "email": "alice@example.com" }</pre>
+              </div>
+            </details>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Assertions</p>
+            <div class="space-y-1 text-xs">
+              <div class="flex items-center gap-2 text-green-700"><span>✓</span> equal $getUser.email == "alice@example.com"</div>
+              <div class="flex items-center gap-2 text-green-700"><span>✓</span> notEmpty $getUser.id</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RUN DETAIL PAGE ===== -->
+    <div id="page-run-detail" class="page hidden flex-1 overflow-auto p-8">
+      <div class="max-w-2xl mx-auto">
+        <div class="flex items-center gap-3 mb-6">
+          <button onclick="showPage('runs')" class="text-gray-400 hover:text-gray-600 text-lg">←</button>
+          <h2 class="text-2xl font-bold">Run Detail</h2>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">FAIL</span>
+            <span class="font-medium text-sm">Order flow</span>
+            <span class="text-xs text-gray-400 ml-auto">Apr 26, 2026 09:10 · 891ms</span>
+          </div>
+          <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+            Assertion failed: equal $getOrder.status == "confirmed" — got "pending"
+          </div>
+          <div class="space-y-2 mb-4">
+            <details class="border border-gray-200 rounded" open>
+              <summary class="px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-gray-50">
+                <div class="flex items-center gap-2">
+                  <span class="text-green-600 text-xs">✓</span>
+                  <span class="font-medium text-sm">createOrder</span>
+                </div>
+                <span class="text-xs text-gray-400">312ms</span>
+              </summary>
+              <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p class="text-xs font-medium text-gray-500 mb-1">Response</p>
+                <pre class="text-xs font-mono text-gray-700">{ "id": "ord_xyz789", "status": "pending" }</pre>
+              </div>
+            </details>
+            <details class="border border-red-200 rounded">
+              <summary class="px-4 py-2 cursor-pointer flex items-center justify-between hover:bg-red-50">
+                <div class="flex items-center gap-2">
+                  <span class="text-red-500 text-xs">✗</span>
+                  <span class="font-medium text-sm">getOrder</span>
+                </div>
+                <span class="text-xs text-gray-400">579ms</span>
+              </summary>
+              <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p class="text-xs font-medium text-gray-500 mb-1">Response</p>
+                <pre class="text-xs font-mono text-gray-700">{ "id": "ord_xyz789", "status": "pending" }</pre>
+              </div>
+            </details>
+          </div>
+          <div class="pt-4 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Assertions</p>
+            <div class="space-y-1 text-xs">
+              <div class="flex items-center gap-2 text-red-600"><span>✗</span> equal $getOrder.status == "confirmed" — got "pending"</div>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-gray-100 mt-4">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-2">Parameters Used</p>
+            <div class="text-xs font-mono text-gray-600">
+              <div>createOrder › userId: "usr_abc123"</div>
+              <div>createOrder › items: [{"sku":"ABC","qty":2}]</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- New Catalog -->
+<div id="modal-new-catalog" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">New Catalog</h3>
+    <div class="space-y-3">
+      <input type="text" placeholder="Catalog name" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+      <input type="text" placeholder="Description (optional)" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('modal-new-catalog')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="closeModal('modal-new-catalog')" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Step -->
+<div id="modal-new-step" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">New Catalog Step</h3>
+    <div class="space-y-3">
+      <input type="text" placeholder="Step name" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+      <div class="grid grid-cols-2 gap-3">
+        <select class="border border-gray-300 rounded px-2 py-2 text-sm">
+          <option value="">Select target…</option>
+          <option>prod-api</option>
+          <option>staging-api</option>
+        </select>
+        <select class="border border-gray-300 rounded px-2 py-2 text-sm">
+          <option>GET</option>
+          <option selected>POST</option>
+          <option>PUT</option>
+          <option>PATCH</option>
+          <option>DELETE</option>
+          <option>HEAD</option>
+          <option>OPTIONS</option>
+        </select>
+      </div>
+      <input type="text" placeholder="/path" class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" />
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('modal-new-step')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="closeModal('modal-new-step')" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Target -->
+<div id="modal-new-target" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">New Target</h3>
+    <div class="space-y-3">
+      <input type="text" placeholder="Name (e.g. prod-api)" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+      <input type="text" placeholder="Base URL (e.g. https://api.example.com)" class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" />
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('modal-new-target')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="closeModal('modal-new-target')" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Workflow -->
+<div id="modal-new-workflow" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">New Workflow</h3>
+    <div class="space-y-3">
+      <input type="text" placeholder="Workflow name" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+      <textarea placeholder="Description (optional)" rows="2" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('modal-new-workflow')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="closeModal('modal-new-workflow')" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Step to Workflow -->
+<div id="modal-add-step" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">Add Step</h3>
+    <div class="space-y-3">
+      <div class="flex gap-2">
+        <button onclick="setAddStepType('catalog')" id="add-step-tab-catalog" class="flex-1 py-2 text-sm border-b-2 border-indigo-600 text-indigo-600 font-medium">Catalog Step</button>
+        <button onclick="setAddStepType('workflow')" id="add-step-tab-workflow" class="flex-1 py-2 text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700">Sub-workflow</button>
+      </div>
+      <div id="add-step-catalog">
+        <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2">
+          <option>All catalogs</option>
+          <option>User API</option>
+          <option>Orders API</option>
+          <option>Auth API</option>
+        </select>
+        <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+          <option>createUser — POST /users</option>
+          <option>getUser — GET /users/{id}</option>
+          <option>listUsers — GET /users</option>
+        </select>
+      </div>
+      <div id="add-step-workflow" class="hidden">
+        <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+          <option>Auth token check</option>
+          <option>Order flow</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('modal-add-step')" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <button onclick="closeModal('modal-add-step')" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────────────────
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-gray-700', 'text-white'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.remove('hidden');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('bg-gray-700', 'text-white');
+}
+
+// ── Catalog panel ─────────────────────────────────────────────────────────────
+
+function openCatalogPanel(id) {
+  const names = { 'user-api': 'User API', 'orders-api': 'Orders API', 'auth-api': 'Auth API' };
+  const descs = { 'user-api': 'User management endpoints', 'orders-api': 'Order creation and retrieval', 'auth-api': 'Authentication flows' };
+  document.getElementById('catalog-panel-name').textContent = names[id] || id;
+  document.getElementById('catalog-panel-desc').textContent = descs[id] || '';
+  document.getElementById('catalog-panel').classList.remove('hidden');
+  closeStepPanel();
+}
+
+function closeCatalogPanel() {
+  document.getElementById('catalog-panel').classList.add('hidden');
+  closeStepPanel();
+}
+
+// ── Step panel ────────────────────────────────────────────────────────────────
+
+function openStepPanel(name) {
+  const methods = { createUser: 'POST /users', getUser: 'GET /users/{id}', listUsers: 'GET /users' };
+  document.getElementById('step-panel-name').textContent = name;
+  document.getElementById('step-panel-method').textContent = methods[name] || '';
+  document.getElementById('step-panel').classList.remove('hidden');
+}
+
+function closeStepPanel() {
+  document.getElementById('step-panel').classList.add('hidden');
+}
+
+function togglePolling() {
+  const checked = document.getElementById('polling-toggle').checked;
+  document.getElementById('polling-settings').classList.toggle('hidden', !checked);
+}
+
+// ── Targets ───────────────────────────────────────────────────────────────────
+
+function editTarget(id) {
+  const row = document.getElementById('target-row-' + id);
+  row.querySelectorAll('.target-display').forEach(el => el.classList.add('hidden'));
+  row.querySelectorAll('.target-edit').forEach(el => el.classList.remove('hidden'));
+}
+
+function saveTarget(id) {
+  const row = document.getElementById('target-row-' + id);
+  row.querySelectorAll('.target-display').forEach(el => el.classList.remove('hidden'));
+  row.querySelectorAll('.target-edit').forEach(el => el.classList.add('hidden'));
+}
+
+function cancelTarget(id) { saveTarget(id); }
+
+function toggleArchivedTargets() {
+  const show = document.getElementById('show-archived-targets').checked;
+  document.querySelectorAll('.archived-target').forEach(row => row.classList.toggle('hidden', !show));
+}
+
+// ── Workflow panel ────────────────────────────────────────────────────────────
+
+function openWorkflowPanel() {
+  document.getElementById('workflow-panel').classList.remove('hidden');
+}
+
+function closeWorkflowPanel() {
+  document.getElementById('workflow-panel').classList.add('hidden');
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
+
+function startRun() {
+  document.getElementById('run-live').classList.remove('hidden');
+  setTimeout(() => {
+    document.getElementById('run-live').classList.add('hidden');
+    document.getElementById('run-detail-inline').classList.remove('hidden');
+  }, 2000);
+}
+
+// ── Add step modal tabs ───────────────────────────────────────────────────────
+
+function setAddStepType(type) {
+  const isCatalog = type === 'catalog';
+  document.getElementById('add-step-catalog').classList.toggle('hidden', !isCatalog);
+  document.getElementById('add-step-workflow').classList.toggle('hidden', isCatalog);
+  document.getElementById('add-step-tab-catalog').className = `flex-1 py-2 text-sm border-b-2 ${isCatalog ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}`;
+  document.getElementById('add-step-tab-workflow').className = `flex-1 py-2 text-sm border-b-2 ${!isCatalog ? 'border-indigo-600 text-indigo-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}`;
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+
+function openNewCatalogModal() { document.getElementById('modal-new-catalog').classList.remove('hidden'); }
+function openNewStepModal()    { document.getElementById('modal-new-step').classList.remove('hidden'); }
+function openNewTargetModal()  { document.getElementById('modal-new-target').classList.remove('hidden'); }
+function openNewWorkflowModal(){ document.getElementById('modal-new-workflow').classList.remove('hidden'); }
+function openAddStepModal()    { document.getElementById('modal-add-step').classList.remove('hidden'); }
+
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+document.querySelectorAll('[id^="modal-"]').forEach(modal => {
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+showPage('catalogs');
+</script>
+</body>
+</html>

@@ -21,6 +21,14 @@ public record RunTriggered(string Id, string WorkflowId, DateTimeOffset Triggere
 public record RunCompleted(string Id, bool Passed, JsonElement Result, long DurationMs) : WorkflowRunEvent;
 public record RunFailed(string Id, string Error, long DurationMs) : WorkflowRunEvent;
 
+// Status constants
+public static class RunStatus
+{
+    public const string Pending = "pending";
+    public const string Completed = "completed";
+    public const string Failed = "failed";
+}
+
 // Commands
 public record TriggerRun(string Id, string WorkflowId);
 public record RecordResult(bool Passed, JsonElement Result, long DurationMs);
@@ -38,13 +46,13 @@ public static class WorkflowRunAggregate
 
     public static Result<IEnumerable<WorkflowRunEvent>> Handle(WorkflowRunState state, RecordResult cmd)
     {
-        if (state.Status != "pending") return $"Run '{state.Id}' is not pending (status: {state.Status}).";
+        if (state.Status != RunStatus.Pending) return $"Run '{state.Id}' is not pending (status: {state.Status}).";
         return new WorkflowRunEvent[] { new RunCompleted(state.Id, cmd.Passed, cmd.Result, cmd.DurationMs) };
     }
 
     public static Result<IEnumerable<WorkflowRunEvent>> Handle(WorkflowRunState state, RecordFailure cmd)
     {
-        if (state.Status != "pending") return $"Run '{state.Id}' is not pending (status: {state.Status}).";
+        if (state.Status != RunStatus.Pending) return $"Run '{state.Id}' is not pending (status: {state.Status}).";
         if (string.IsNullOrWhiteSpace(cmd.Error)) return "Error message is required.";
         return new WorkflowRunEvent[] { new RunFailed(state.Id, cmd.Error, cmd.DurationMs) };
     }
@@ -52,12 +60,12 @@ public static class WorkflowRunAggregate
     public static WorkflowRunState Apply(WorkflowRunState? state, WorkflowRunEvent e) => e switch
     {
         RunTriggered evt => new WorkflowRunState(
-            evt.Id, evt.WorkflowId, "pending",
+            evt.Id, evt.WorkflowId, RunStatus.Pending,
             null, null, null, evt.TriggeredAt, null),
 
         RunCompleted evt => state! with
         {
-            Status = "completed",
+            Status = RunStatus.Completed,
             Passed = evt.Passed,
             Result = evt.Result,
             DurationMs = evt.DurationMs
@@ -65,7 +73,7 @@ public static class WorkflowRunAggregate
 
         RunFailed evt => state! with
         {
-            Status = "failed",
+            Status = RunStatus.Failed,
             Error = evt.Error,
             DurationMs = evt.DurationMs
         },

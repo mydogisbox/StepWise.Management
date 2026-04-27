@@ -173,7 +173,7 @@ public class WorkflowExecutionService : BackgroundService
         }
     }
 
-    private async Task<StepWise.Json.WorkflowResult> ExecuteWorkflowAsync(
+    private async Task<Walkthrough.Json.WorkflowResult> ExecuteWorkflowAsync(
         string workflowId, CancellationToken cancellationToken)
     {
         var workflowEvents = await _eventStore.LoadAsync($"workflows/{workflowId}");
@@ -184,18 +184,20 @@ public class WorkflowExecutionService : BackgroundService
             workflowEvents.Select(e => WorkflowAggregate.DeserializeEvent(e.EventType, e.Payload)),
             WorkflowAggregate.Apply)!;
 
-        var stepDefs = new Dictionary<string, StepWise.Json.StepDefinition>(StringComparer.OrdinalIgnoreCase);
-        var targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var stepDefs = new Dictionary<string, Walkthrough.Json.StepDefinition>(StringComparer.OrdinalIgnoreCase);
+        var targets = new Dictionary<string, Walkthrough.Json.TargetDefinition>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var workflowStep in workflowState.Steps)
         {
             var catalogStepEvents = await _eventStore.LoadAsync($"catalog-steps/{workflowStep.CatalogStepId}");
-            if (catalogStepEvents.Count == 0) continue;
+            if (catalogStepEvents.Count == 0)
+                throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' not found.");
 
             var catalogStep = Aggregate.Fold<CatalogStepState, CatalogStepEvent>(
                 catalogStepEvents.Select(e => CatalogStepAggregate.DeserializeEvent(e.EventType, e.Payload)),
                 CatalogStepAggregate.Apply);
-            if (catalogStep == null) continue;
+            if (catalogStep == null)
+                throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' could not be folded.");
 
             var targetEvents = await _eventStore.LoadAsync($"targets/{catalogStep.TargetId}");
             if (targetEvents.Count > 0)
@@ -208,23 +210,23 @@ public class WorkflowExecutionService : BackgroundService
             }
 
             var workflowDefaults = workflowStep.Defaults.HasValue
-                ? JsonSerializer.Deserialize<Dictionary<string, StepWise.Json.FieldValueDefinition>>(
+                ? JsonSerializer.Deserialize<Dictionary<string, Walkthrough.Json.FieldValueDefinition>>(
                     workflowStep.Defaults.Value.GetRawText(), JsonConfig.Options)
                 : null;
 
             var catalogDefaults = catalogStep.Defaults.HasValue
-                ? JsonSerializer.Deserialize<Dictionary<string, StepWise.Json.FieldValueDefinition>>(
+                ? JsonSerializer.Deserialize<Dictionary<string, Walkthrough.Json.FieldValueDefinition>>(
                     catalogStep.Defaults.Value.GetRawText(), JsonConfig.Options)
                 : null;
 
             var mergedDefaults = catalogDefaults != null
-                ? new Dictionary<string, StepWise.Json.FieldValueDefinition>(catalogDefaults)
-                : new Dictionary<string, StepWise.Json.FieldValueDefinition>();
+                ? new Dictionary<string, Walkthrough.Json.FieldValueDefinition>(catalogDefaults)
+                : new Dictionary<string, Walkthrough.Json.FieldValueDefinition>();
             if (workflowDefaults != null)
                 foreach (var (k, v) in workflowDefaults)
                     mergedDefaults[k] = v;
 
-            stepDefs[workflowStep.Id] = new StepWise.Json.StepDefinition
+            stepDefs[workflowStep.Id] = new Walkthrough.Json.StepDefinition
             {
                 Target = catalogStep.TargetId,
                 Method = catalogStep.Method,
@@ -233,14 +235,14 @@ public class WorkflowExecutionService : BackgroundService
             };
         }
 
-        var workflowDef = new StepWise.Json.WorkflowDefinition(
+        var workflowDef = new Walkthrough.Json.WorkflowDefinition(
             Name: workflowState.Name,
             Steps: workflowState.Steps
-                .Select(s => new StepWise.Json.StepInvocation { Step = s.Id })
+                .Select(s => new Walkthrough.Json.StepInvocation { Step = s.Id })
                 .ToList(),
             Assertions: workflowState.Assertions.Count > 0 ? workflowState.Assertions : null);
 
-        return await StepWise.Json.JsonWorkflowRunner.RunAsync(workflowDef, stepDefs, targets);
+        return await Walkthrough.Json.JsonWorkflowRunner.RunAsync(workflowDef, stepDefs, targets);
     }
 
     private record OutboxPayload(string RunId, string WorkflowId);

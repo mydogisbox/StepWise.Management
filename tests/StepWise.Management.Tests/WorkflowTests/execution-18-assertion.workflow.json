@@ -25,12 +25,12 @@
     { "step": "runWorkflow" },
     {
       "poll": "getRun",
-      "until": { "equal": ["getRun.status", "completed"] },
+      "until": { "equal": ["$getRun.status", "completed"] },
       "intervalMs": 200,
       "timeoutMs": 10000
     }
   ],
   "assertions": [
-    { "equal": ["getRun.result.passed", "true"] }
+    { "equal": ["$getRun.result.passed", "true"] }
   ]
 }

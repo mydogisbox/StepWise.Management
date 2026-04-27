@@ -1,0 +1,23 @@
+{
+  "name": "Runs_01_List",
+  "steps": [
+    { "workflow": "SetupCatalogWithStep" },
+    { "build": "createWorkflow" },
+    { "build": "appendStep" },
+    { "step": "postWorkflowCommands" },
+    { "step": "runWorkflow" },
+    {
+      "poll": "getRun",
+      "until": {
+        "equal": ["$getRun.status", "completed"]
+      },
+      "intervalMs": 200,
+      "timeoutMs": 10000
+    },
+    { "step": "listRuns" }
+  ],
+  "assertions": [
+    { "notEmpty": "$listRuns" },
+    { "equal": ["$listRuns[?workflowId=createWorkflow.payload.id].passed", "true"] }
+  ]
+}

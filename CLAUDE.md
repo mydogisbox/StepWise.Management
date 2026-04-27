@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Off-limits dependencies
 
-Do **not** edit files in `../StepWise` or `../CommandFramework`. These are sibling repos treated as read-only dependencies here. Propose changes as suggestions only and wait for explicit instruction before touching those paths.
+Do **not** edit files in `../Walkthrough` or `../CommandFramework`. These are sibling repos treated as read-only dependencies here. Propose changes as suggestions only and wait for explicit instruction before touching those paths.
 
 ---
 
@@ -19,14 +19,14 @@ dotnet run --project src/StepWise.Management
 # Build only
 dotnet build
 
-# Run all tests (requires API on localhost:5000 and a clean DB)
-dotnet test tests/StepWise.Management.Tests
+# Run all tests (starts DB, runs migrations, starts API, runs tests, stops API)
+bash test.sh
 
-# Run a single test
+# Run a single test (requires API already running via test.sh or manually)
 dotnet test tests/StepWise.Management.Tests --filter "FullyQualifiedName~Catalog_01"
 ```
 
-Tests are integration tests that hit the live API. Start the server before running them.
+Tests are integration tests. Use `test.sh` — it handles the full lifecycle (DB, migrations, API start/stop).
 
 ---
 
@@ -37,7 +37,7 @@ Tests are integration tests that hit the live API. Start the server before runni
 This project references two sibling repos by path (not NuGet):
 
 - `../CommandFramework` — event-sourced aggregate framework
-- `../StepWise` — JSON workflow test runner
+- `../Walkthrough` — JSON workflow test runner
 
 Both must be present alongside this repo. Do not add these as packages.
 
@@ -70,7 +70,7 @@ The `aggregateId` is always client-generated. The server does not assign IDs.
 
 ### List endpoints (projection-based)
 
-`GET /targets`, `GET /catalogs`, `GET /catalog-steps`, `GET /workflows` — these query projection tables maintained by `EventReaction` handlers. They are NOT `MapAggregate` endpoints.
+`GET /targets`, `GET /catalogs`, `GET /catalog-steps`, `GET /workflows`, `GET /runs` — these query projection tables maintained by `EventReaction` handlers. They are NOT `MapAggregate` endpoints.
 
 | Endpoint | Projection table |
 |----------|-----------------|
@@ -78,12 +78,20 @@ The `aggregateId` is always client-generated. The server does not assign IDs.
 | `GET /catalogs` | `catalog_summaries` |
 | `GET /catalog-steps` | `catalog_step_summaries` |
 | `GET /workflows` | `workflow_summaries` |
+| `GET /runs` | `test_run_summaries` |
 
-`GET /catalog-steps` accepts optional query params:
-- `catalogId` — filter by catalog
-- `showArchived` (default `false`) — when false, excludes rows where `is_archived = true`
+All list endpoints accept `showArchived` (default `false`) — when false, excludes rows where `is_archived = true`. `GET /catalog-steps` additionally accepts `catalogId` to filter by catalog.
 
 List endpoints use `NpgsqlCommand` with positional `$1`, `$2` parameters and `DbDataReader` loops — not Dapper. JSONB columns (`defaults`) require `::text` cast when reading: `defaults::text`.
+
+### `test_run_summaries` reactions
+
+Three reactions maintain this table across the run lifecycle:
+- `RunTriggered` — INSERTs the row; looks up `workflow_name` from `workflow_summaries` using `e.WorkflowId`. `passed` and `duration_ms` are left NULL until the run finishes.
+- `RunCompleted` — UPDATEs `passed` and `duration_ms`
+- `RunFailed` — UPDATEs `passed = false` and `duration_ms`
+
+`passed` and `duration_ms` are nullable columns to support this two-phase write.
 
 ### Workflow execution
 
@@ -99,7 +107,7 @@ Tests live in `tests/StepWise.Management.Tests/WorkflowTests/`. They use `StepWi
 
 ```
 WorkflowTests/
-  targets.json                  ← { "management": "http://localhost:5000" }
+  targets.json                  ← { "management": { "baseUrl": "http://localhost:5000" } }
   setup-catalog-with-step.workflow.json   ← shared setup, embedded by reference
   *.workflow.json               ← one file per test scenario
   Requests/
@@ -172,8 +180,8 @@ Build step `with` overrides use the payload wrapper to deep-merge inside the `pa
     { "step": "getTarget" }
   ],
   "assertions": [
-    { "equal": ["getTarget.name", "my-target"] },
-    { "equal": ["getTarget.baseUrl", "http://localhost:5000"] }
+    { "equal": ["$getTarget.name", "my-target"] },
+    { "equal": ["$getTarget.baseUrl", "http://localhost:5000"] }
   ]
 }
 ```
@@ -181,17 +189,19 @@ Build step `with` overrides use the payload wrapper to deep-merge inside the `pa
 `StepInvocation` also supports `pathParams` and `query` for per-invocation overrides of path/query params.
 
 Supported assertion types:
-- `{ "equal": ["step.field", "literal"] }` — strict equality
-- `{ "count": ["stepName", "N"] }` — array length equals N
-- `{ "empty": ["stepName"] }` — array is empty
-- `{ "notEmpty": ["stepName"] }` — array is non-empty
+- `{ "equal": ["$step.field", "literal"] }` — strict equality; left side uses `$` sigil, right side is a literal string
+- `{ "count": ["$stepName", "N"] }` — array length equals N
+- `{ "empty": "$stepName" }` — array is empty
+- `{ "notEmpty": "$stepName" }` — array is non-empty
+
+Path expressions (left side of `equal`/`notEqual`, and `count`/`empty`/`notEmpty` values) must start with `$`. Bare strings without `$` are treated as literals.
 
 ### Key test rules (from `Plans/rules.md` and `Plans/philosophy.md`)
 
 - **Never hardcode IDs or names in defaults.** Use `{ "generated": "guid" }` so tests are isolated by construction.
 - **Assert only against hard-coded literal values in `with` blocks.** Never assert against defaults, generated values, or captured values — these aren't known at the time the assertion is written. If a test needs to assert a field value, specify it explicitly in a `with` block and assert that literal.
-- **Assert on GET responses, not command responses.** Command steps (`POST /*/commands`) are fire-and-forget. Assertions reference `getTarget.baseUrl`, not request captures.
-- **Foreign key assertions use list responses.** To assert `getCatalogStep.targetId` is correct, compare against `listTargets[?name=createTarget.payload.name].id`, not `getTarget.id`.
+- **Assert on GET responses, not command responses.** Command steps (`POST /*/commands`) are fire-and-forget. Assertions reference `$getTarget.baseUrl`, not request captures.
+- **Foreign key assertions use list responses.** To assert `$getCatalogStep.targetId` is correct, compare against `$listTargets[?name=createTarget.payload.name].id`, not `$getTarget.id`.
 - **List step immediately after post.** Place `listTargets` right after `postTargetCommands`, before any dependent builds.
 - **Shared workflows carry no assertions.** `SetupCatalogWithStep` only establishes state; the calling workflow owns all assertions.
 - **Override only what the test cares about.** Defaults encode correct usage; tests specify only the values that distinguish the scenario.
@@ -208,13 +218,39 @@ Use `captureRequestAs` only when you need to re-identify an aggregate that was c
 
 Then `catalogStepReq.aggregateId` lets the next build step pass `"id": { "from": "catalogStepReq.aggregateId" }` to update the same aggregate. If you don't need to re-identify an existing aggregate, omit `captureRequestAs`.
 
+### Capturing error responses with `captureFullResponseAs`
+
+By default, any non-2xx response throws and fails the workflow. Use `captureFullResponseAs` to opt into capturing the full response — status code and body — without throwing. The captured value is `{ "status": int, "body": ... }`.
+
+```json
+{ "step": "postCatalogStepCommands", "captureFullResponseAs": "errorResponse" }
+```
+
+Assertions reference `$errorResponse.status` and `$errorResponse.body.*`:
+
+```json
+{ "equal": ["$errorResponse.status", "422"] },
+{ "notEmpty": "$errorResponse.body.error" }
+```
+
+Works the same way for successful responses when you need to assert on the status code:
+
+```json
+{ "step": "postCatalogStepCommands", "captureFullResponseAs": "result" }
+```
+```json
+{ "equal": ["$result.status", "200"] },
+{ "notEmpty": "$result.body" }
+```
+
+`captureFullResponseAs` and `captureRequestAs` are independent and can be combined on the same invocation.
+
 ### Domain event `Id` convention
 
 Every event type carries a `string Id` field so `EventReaction` handlers can maintain projection tables without access to the stream ID. The pattern:
 
 - **Creation commands** accept `Id` as a parameter and pass it to the created event: `new TargetCreated(cmd.Id, cmd.Name, cmd.BaseUrl)`
 - **Update/archive commands** do not accept `Id` — the handler reads it from aggregate state: `new TargetArchived(state.Id)`
-- **Reactions** guard against missing IDs for backwards compatibility: `if (string.IsNullOrEmpty(e.Id)) return;`
 
 When adding a new aggregate, follow this pattern or projection maintenance will silently break.
 

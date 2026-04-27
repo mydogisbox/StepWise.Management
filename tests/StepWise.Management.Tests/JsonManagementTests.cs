@@ -1,4 +1,4 @@
-using StepWise.Json;
+using Walkthrough.Json;
 using Xunit;
 
 namespace StepWise.Management.Tests;
@@ -45,6 +45,53 @@ public class JsonManagementTests : JsonWorkflowTestBase
     [Fact] public Task Catalog_07_ListIncludesArchivedWhenFlagSet() =>
         RunWorkflowAsync("WorkflowTests/catalog-07-list-includes-archived.workflow.json");
 
+    [Fact] public Task Catalog_08_ErrorCapturesStatus() =>
+        RunWorkflowAsync("WorkflowTests/catalog-08-error-captures-status.workflow.json");
+
+    [Fact] public Task Catalog_09_SuccessCapturesStatus() =>
+        RunWorkflowAsync("WorkflowTests/catalog-09-success-captures-status.workflow.json");
+
+    [Fact] public Task Catalog_10_UpdateCatalog_NameAndDescriptionAsserted() =>
+        RunWorkflowAsync("WorkflowTests/catalog-10-update-catalog.workflow.json");
+
+    [Fact] public Task Catalog_11_ArchiveCatalog_IsArchivedTrue() =>
+        RunWorkflowAsync("WorkflowTests/catalog-11-archive-catalog.workflow.json");
+
+    [Fact] public Task Catalog_12_UnarchiveCatalog_IsArchivedFalse() =>
+        RunWorkflowAsync("WorkflowTests/catalog-12-unarchive-catalog.workflow.json");
+
+    [Fact] public Task Catalog_13_UnarchiveStep_IsArchivedFalse() =>
+        RunWorkflowAsync("WorkflowTests/catalog-13-unarchive-step.workflow.json");
+
+    [Fact] public Task Catalog_14_StepShapes_RoundTrip() =>
+        RunWorkflowAsync("WorkflowTests/catalog-14-step-shapes.workflow.json");
+
+    [Fact] public Task Catalog_15_StepPolling_FlagAndRetryAsserted() =>
+        RunWorkflowAsync("WorkflowTests/catalog-15-step-polling.workflow.json");
+
+    [Fact] public Task Catalog_16_ListExcludesArchivedCatalog() =>
+        RunWorkflowAsync("WorkflowTests/catalog-16-list-excludes-archived-catalog.workflow.json");
+
+    [Fact] public Task Catalog_17_ListIncludesArchivedCatalogWhenFlagSet() =>
+        RunWorkflowAsync("WorkflowTests/catalog-17-list-includes-archived-catalog.workflow.json");
+
+    // ── Target ────────────────────────────────────────────────────────────────
+
+    [Fact] public Task Target_01_Archive_IsArchivedTrue() =>
+        RunWorkflowAsync("WorkflowTests/target-01-archive.workflow.json");
+
+    [Fact] public Task Target_02_Unarchive_IsArchivedFalse() =>
+        RunWorkflowAsync("WorkflowTests/target-02-unarchive.workflow.json");
+
+    [Fact] public Task Target_03_Update_NameAndUrlAsserted() =>
+        RunWorkflowAsync("WorkflowTests/target-03-update.workflow.json");
+
+    [Fact] public Task Target_04_ListExcludesArchivedByDefault() =>
+        RunWorkflowAsync("WorkflowTests/target-04-list-excludes-archived.workflow.json");
+
+    [Fact] public Task Target_05_ListIncludesArchivedWhenFlagSet() =>
+        RunWorkflowAsync("WorkflowTests/target-05-list-includes-archived.workflow.json");
+
     // ── Workflow ──────────────────────────────────────────────────────────────
 
     [Fact] public Task Workflow_06_Create_NameCorrectAndStepsEmpty() =>
@@ -76,6 +123,20 @@ public class JsonManagementTests : JsonWorkflowTestBase
 
     [Fact] public Task Workflow_15_UnarchiveWorkflow_IsArchivedFalse() =>
         RunWorkflowAsync("WorkflowTests/workflow-15-unarchive-workflow.workflow.json");
+
+    [Fact] public Task Workflow_16_UpdateDescription_DescriptionAsserted() =>
+        RunWorkflowAsync("WorkflowTests/workflow-16-update-description.workflow.json");
+
+    [Fact] public Task Workflow_17_ListExcludesArchivedByDefault() =>
+        RunWorkflowAsync("WorkflowTests/workflow-17-list-excludes-archived.workflow.json");
+
+    [Fact] public Task Workflow_18_ListIncludesArchivedWhenFlagSet() =>
+        RunWorkflowAsync("WorkflowTests/workflow-18-list-includes-archived.workflow.json");
+
+    // ── Runs ──────────────────────────────────────────────────────────────────
+
+    [Fact] public Task Runs_01_List_ShowsCompletedRun() =>
+        RunWorkflowAsync("WorkflowTests/runs-01-list.workflow.json");
 
     // ── Execution ─────────────────────────────────────────────────────────────
 

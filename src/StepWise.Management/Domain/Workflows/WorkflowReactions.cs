@@ -10,7 +10,6 @@ public static class WorkflowReactions
     [
         EventReaction.On<WorkflowCreated>(async (e, tx) =>
         {
-            if (string.IsNullOrEmpty(e.Id)) return;
             var conn = ((NpgsqlTransaction)tx).Connection!;
             await conn.ExecuteAsync(@"
                 INSERT INTO workflow_summaries (id, name, archived)
@@ -22,7 +21,6 @@ public static class WorkflowReactions
 
         EventReaction.On<WorkflowRenamed>(async (e, tx) =>
         {
-            if (string.IsNullOrEmpty(e.Id)) return;
             var conn = ((NpgsqlTransaction)tx).Connection!;
             await conn.ExecuteAsync(
                 "UPDATE workflow_summaries SET name = @name, updated_at = now() WHERE id = @id",
@@ -32,7 +30,6 @@ public static class WorkflowReactions
 
         EventReaction.On<WorkflowArchived>(async (e, tx) =>
         {
-            if (string.IsNullOrEmpty(e.Id)) return;
             var conn = ((NpgsqlTransaction)tx).Connection!;
             await conn.ExecuteAsync(
                 "UPDATE workflow_summaries SET archived = true, updated_at = now() WHERE id = @id",
@@ -42,11 +39,19 @@ public static class WorkflowReactions
 
         EventReaction.On<WorkflowUnarchived>(async (e, tx) =>
         {
-            if (string.IsNullOrEmpty(e.Id)) return;
             var conn = ((NpgsqlTransaction)tx).Connection!;
             await conn.ExecuteAsync(
                 "UPDATE workflow_summaries SET archived = false, updated_at = now() WHERE id = @id",
                 new { id = e.Id },
+                tx);
+        }),
+
+        EventReaction.On<WorkflowDescriptionUpdated>(async (e, tx) =>
+        {
+            var conn = ((NpgsqlTransaction)tx).Connection!;
+            await conn.ExecuteAsync(
+                "UPDATE workflow_summaries SET description = @description, updated_at = now() WHERE id = @id",
+                new { id = e.Id, description = e.Description },
                 tx);
         })
     ];

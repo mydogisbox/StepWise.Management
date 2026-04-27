@@ -41,10 +41,10 @@
     { "step": "getCatalogStep" }
   ],
   "assertions": [
-    { "equal": ["getCatalogStep.stepName", "getStatus"] },
-    { "equal": ["getCatalogStep.targetId", "createTarget.payload.id"] },
-    { "equal": ["getCatalogStep.method", "POST"] },
-    { "equal": ["getCatalogStep.path", "/api/catalogs/v2"] },
-    { "equal": ["getCatalogStep.defaults.param", "value2"] }
+    { "equal": ["$getCatalogStep.stepName", "getStatus"] },
+    { "equal": ["$getCatalogStep.targetId", "$createTarget.payload.id"] },
+    { "equal": ["$getCatalogStep.method", "POST"] },
+    { "equal": ["$getCatalogStep.path", "/api/catalogs/v2"] },
+    { "equal": ["$getCatalogStep.defaults.param", "value2"] }
   ]
 }

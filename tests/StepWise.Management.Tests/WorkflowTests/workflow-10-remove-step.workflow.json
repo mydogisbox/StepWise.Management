@@ -17,7 +17,7 @@
     { "step": "getWorkflow" }
   ],
   "assertions": [
-    { "count": ["getWorkflow.steps", "1"] },
-    { "equal": ["getWorkflow.steps[0].id", "appendedStepB.payload.id"] }
+    { "count": ["$getWorkflow.steps", "1"] },
+    { "equal": ["$getWorkflow.steps[0].id", "$appendedStepB.payload.id"] }
   ]
 }

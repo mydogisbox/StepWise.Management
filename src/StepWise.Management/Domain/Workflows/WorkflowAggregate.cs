@@ -1,6 +1,6 @@
 using System.Text.Json;
 using CommandFramework.Core;
-using StepWise.Json;
+using Walkthrough.Json;
 using StepWise.Management;
 
 namespace StepWise.Management.Domain.Workflows;
@@ -20,12 +20,14 @@ public record WorkflowState(
     string Name,
     List<WorkflowStep> Steps,
     List<AssertionDefinition> Assertions,
-    bool IsArchived);
+    bool IsArchived,
+    string Description = "");
 
 // Events
 public abstract record WorkflowEvent;
 public record WorkflowCreated(string Id, string Name) : WorkflowEvent;
 public record WorkflowRenamed(string Id, string Name) : WorkflowEvent;
+public record WorkflowDescriptionUpdated(string Id, string Description) : WorkflowEvent;
 public record WorkflowStepAppended(WorkflowStep Step) : WorkflowEvent;
 public record WorkflowStepInsertedBefore(string BeforeId, WorkflowStep Step) : WorkflowEvent;
 public record WorkflowStepRemoved(string StepId) : WorkflowEvent;
@@ -37,6 +39,7 @@ public record WorkflowUnarchived(string Id) : WorkflowEvent;
 // Commands
 public record CreateWorkflow(string Id, string Name);
 public record RenameWorkflow(string Name);
+public record UpdateDescription(string Description);
 public record AppendStep(string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null);
 public record InsertStepBefore(string BeforeId, string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null);
 public record RemoveStep(string Id);
@@ -59,6 +62,9 @@ public static class WorkflowAggregate
         if (string.IsNullOrWhiteSpace(cmd.Name)) return "Name is required.";
         return new WorkflowEvent[] { new WorkflowRenamed(state.Id, cmd.Name) };
     }
+
+    public static Result<IEnumerable<WorkflowEvent>> Handle(WorkflowState state, UpdateDescription cmd)
+        => new WorkflowEvent[] { new WorkflowDescriptionUpdated(state.Id, cmd.Description ?? "") };
 
     public static Result<IEnumerable<WorkflowEvent>> Handle(WorkflowState state, AppendStep cmd)
     {
@@ -114,6 +120,9 @@ public static class WorkflowAggregate
             case WorkflowCreated evt:
                 return new WorkflowState(evt.Id, evt.Name, new List<WorkflowStep>(), new List<AssertionDefinition>(), false);
 
+            case WorkflowDescriptionUpdated evt:
+                return state! with { Description = evt.Description };
+
             case WorkflowRenamed evt:
                 return state! with { Name = evt.Name };
 
@@ -163,6 +172,7 @@ public static class WorkflowAggregate
         {
             CreateWorkflow cmd => Handle(state, cmd),
             RenameWorkflow cmd when state != null => Handle(state, cmd),
+            UpdateDescription cmd when state != null => Handle(state, cmd),
             AppendStep cmd when state != null => Handle(state, cmd),
             InsertStepBefore cmd when state != null => Handle(state, cmd),
             RemoveStep cmd when state != null => Handle(state, cmd),
@@ -179,6 +189,7 @@ public static class WorkflowAggregate
         {
             nameof(CreateWorkflow) => payload.Deserialize<CreateWorkflow>(JsonConfig.Options)!,
             nameof(RenameWorkflow) => payload.Deserialize<RenameWorkflow>(JsonConfig.Options)!,
+            nameof(UpdateDescription) => payload.Deserialize<UpdateDescription>(JsonConfig.Options)!,
             nameof(AppendStep) => payload.Deserialize<AppendStep>(JsonConfig.Options)!,
             nameof(InsertStepBefore) => payload.Deserialize<InsertStepBefore>(JsonConfig.Options)!,
             nameof(RemoveStep) => payload.Deserialize<RemoveStep>(JsonConfig.Options)!,
@@ -194,6 +205,7 @@ public static class WorkflowAggregate
         {
             nameof(WorkflowCreated) => JsonSerializer.Deserialize<WorkflowCreated>(payload, JsonConfig.Options)!,
             nameof(WorkflowRenamed) => JsonSerializer.Deserialize<WorkflowRenamed>(payload, JsonConfig.Options)!,
+            nameof(WorkflowDescriptionUpdated) => JsonSerializer.Deserialize<WorkflowDescriptionUpdated>(payload, JsonConfig.Options)!,
             nameof(WorkflowStepAppended) => JsonSerializer.Deserialize<WorkflowStepAppended>(payload, JsonConfig.Options)!,
             nameof(WorkflowStepInsertedBefore) => JsonSerializer.Deserialize<WorkflowStepInsertedBefore>(payload, JsonConfig.Options)!,
             nameof(WorkflowStepRemoved) => JsonSerializer.Deserialize<WorkflowStepRemoved>(payload, JsonConfig.Options)!,

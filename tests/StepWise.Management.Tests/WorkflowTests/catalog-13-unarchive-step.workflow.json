@@ -1,5 +1,5 @@
 {
-  "name": "Catalog_06_ListExcludesArchived",
+  "name": "Catalog_13_UnarchiveStep",
   "steps": [
     { "build": "createTarget" },
     { "step": "postTargetCommands" },
@@ -9,10 +9,11 @@
     { "step": "listCatalogs" },
     { "build": "upsertStep" },
     { "build": "archiveStep" },
+    { "build": "unarchiveStep" },
     { "step": "postCatalogStepCommands" },
-    { "step": "listCatalogSteps" }
+    { "step": "getCatalogStep" }
   ],
   "assertions": [
-    { "count": ["$listCatalogSteps", "0"] }
+    { "equal": ["$getCatalogStep.isArchived", "false"] }
   ]
 }

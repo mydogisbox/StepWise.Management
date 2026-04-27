@@ -1,5 +1,5 @@
 {
-  "name": "Catalog_07_ListIncludesArchived",
+  "name": "Catalog_14_StepShapes",
   "steps": [
     { "build": "createTarget" },
     { "step": "postTargetCommands" },
@@ -11,19 +11,16 @@
       "build": "upsertStep",
       "with": {
         "payload": { "static": {
-          "stepName": { "static": "archivedStep" }
+          "requestShape": { "static": { "kind": "request" } },
+          "responseShape": { "static": { "kind": "response" } }
         }}
       }
     },
-    { "build": "archiveStep" },
     { "step": "postCatalogStepCommands" },
-    {
-      "step": "listCatalogSteps",
-      "query": { "showArchived": { "static": "true" } }
-    }
+    { "step": "getCatalogStep" }
   ],
   "assertions": [
-    { "count": ["$listCatalogSteps", "1"] },
-    { "equal": ["$listCatalogSteps[0].stepName", "archivedStep"] }
+    { "equal": ["$getCatalogStep.requestShape.kind", "request"] },
+    { "equal": ["$getCatalogStep.responseShape.kind", "response"] }
   ]
 }

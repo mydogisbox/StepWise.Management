@@ -34,11 +34,11 @@
     { "step": "getWorkflow" }
   ],
   "assertions": [
-    { "equal": ["getWorkflow.steps[0].id", "appendedStepA.payload.id"] },
-    { "equal": ["getWorkflow.steps[0].defaults.param", "value1"] },
-    { "equal": ["getWorkflow.steps[1].id", "insertStepBefore.payload.id"] },
-    { "equal": ["getWorkflow.steps[1].defaults.param", "value3"] },
-    { "equal": ["getWorkflow.steps[2].id", "appendedStepB.payload.id"] },
-    { "equal": ["getWorkflow.steps[2].defaults.param", "value2"] }
+    { "equal": ["$getWorkflow.steps[0].id", "$appendedStepA.payload.id"] },
+    { "equal": ["$getWorkflow.steps[0].defaults.param", "value1"] },
+    { "equal": ["$getWorkflow.steps[1].id", "$insertStepBefore.payload.id"] },
+    { "equal": ["$getWorkflow.steps[1].defaults.param", "value3"] },
+    { "equal": ["$getWorkflow.steps[2].id", "$appendedStepB.payload.id"] },
+    { "equal": ["$getWorkflow.steps[2].defaults.param", "value2"] }
   ]
 }

@@ -1,0 +1,24 @@
+{
+  "name": "Catalog_17_ListIncludesArchivedCatalog",
+  "steps": [
+    {
+      "build": "createCatalog",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "archived-catalog" }
+        }}
+      }
+    },
+    { "build": "archiveCatalog" },
+    { "step": "postCatalogCommands" },
+    {
+      "step": "listCatalogs",
+      "query": {
+        "showArchived": { "static": "true" }
+      }
+    }
+  ],
+  "assertions": [
+    { "equal": ["$listCatalogs[?name=createCatalog.payload.name].isArchived", "true"] }
+  ]
+}

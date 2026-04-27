@@ -13,6 +13,6 @@
     { "step": "getCatalogStep" }
   ],
   "assertions": [
-    { "equal": ["getCatalogStep.isArchived", "true"] }
+    { "equal": ["$getCatalogStep.isArchived", "true"] }
   ]
 }

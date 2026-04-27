@@ -1,12 +1,12 @@
 {
-  "name": "Workflow_07_Rename",
+  "name": "Workflow_16_UpdateDescription",
   "steps": [
     { "build": "createWorkflow" },
     {
-      "build": "renameWorkflow",
+      "build": "updateWorkflowDescription",
       "with": {
         "payload": { "static": {
-          "name": { "static": "Renamed Workflow 7" }
+          "description": { "static": "A workflow description" }
         }}
       }
     },
@@ -14,6 +14,6 @@
     { "step": "getWorkflow" }
   ],
   "assertions": [
-    { "equal": ["$getWorkflow.name", "Renamed Workflow 7"] }
+    { "equal": ["$getWorkflow.description", "A workflow description"] }
   ]
 }

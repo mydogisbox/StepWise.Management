@@ -13,6 +13,6 @@
     { "step": "getCatalog" }
   ],
   "assertions": [
-    { "equal": ["getCatalog.name", "My Catalog"] }
+    { "equal": ["$getCatalog.name", "My Catalog"] }
   ]
 }

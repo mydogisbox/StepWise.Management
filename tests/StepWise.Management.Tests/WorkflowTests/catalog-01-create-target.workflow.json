@@ -14,7 +14,7 @@
     { "step": "getTarget" }
   ],
   "assertions": [
-    { "equal": ["getTarget.name", "my-target"] },
-    { "equal": ["getTarget.baseUrl", "http://localhost:5000"] }
+    { "equal": ["$getTarget.name", "my-target"] },
+    { "equal": ["$getTarget.baseUrl", "http://localhost:5000"] }
   ]
 }

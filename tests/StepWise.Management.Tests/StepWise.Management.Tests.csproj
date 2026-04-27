@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/StepWise.Management/StepWise.Management.csproj" />
-    <ProjectReference Include="../../../StepWise/src/StepWise.Json/StepWise.Json.csproj" />
+    <ProjectReference Include="../../../Walkthrough/src/Walkthrough.Json/Walkthrough.Json.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="WorkflowTests\**\*.json">

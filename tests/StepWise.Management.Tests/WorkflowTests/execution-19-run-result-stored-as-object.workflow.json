@@ -15,14 +15,14 @@
     { "step": "runWorkflow" },
     {
       "poll": "getRun",
-      "until": { "equal": ["getRun.status", "completed"] },
+      "until": { "equal": ["$getRun.status", "completed"] },
       "intervalMs": 200,
       "timeoutMs": 10000
     }
   ],
   "assertions": [
-    { "equal": ["getRun.passed", "true"] },
-    { "equal": ["getRun.result.passed", "true"] },
-    { "count": ["getRun.result.steps", "1"] }
+    { "equal": ["$getRun.passed", "true"] },
+    { "equal": ["$getRun.result.passed", "true"] },
+    { "count": ["$getRun.result.steps", "1"] }
   ]
 }

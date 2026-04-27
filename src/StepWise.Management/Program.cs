@@ -101,12 +101,14 @@ app.MapAggregate(
 
 var jsonOptions = JsonConfig.Options;
 
-app.MapGet("/targets", async () =>
+app.MapGet("/targets", async (bool showArchived = false) =>
 {
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = "SELECT id, name, base_url, is_archived FROM target_summaries";
+    cmd.CommandText = showArchived
+        ? "SELECT id, name, base_url, is_archived FROM target_summaries"
+        : "SELECT id, name, base_url, is_archived FROM target_summaries WHERE is_archived = false";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
@@ -114,16 +116,18 @@ app.MapGet("/targets", async () =>
     return Results.Ok(results);
 });
 
-app.MapGet("/catalogs", async () =>
+app.MapGet("/catalogs", async (bool showArchived = false) =>
 {
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = "SELECT id, name, is_archived FROM catalog_summaries";
+    cmd.CommandText = showArchived
+        ? "SELECT id, name, description, is_archived FROM catalog_summaries"
+        : "SELECT id, name, description, is_archived FROM catalog_summaries WHERE is_archived = false";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
-        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), isArchived = reader.GetBoolean(2) });
+        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), description = reader.GetString(2), isArchived = reader.GetBoolean(3) });
     return Results.Ok(results);
 });
 
@@ -141,12 +145,14 @@ app.MapGet("/catalog-steps", async (string? catalogId, bool showArchived = false
     if (!showArchived)
         conditions.Add("is_archived = false");
     var where = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
-    cmd.CommandText = $"SELECT id, catalog_id, target_id, step_name, method, path, defaults::text, is_archived FROM catalog_step_summaries{where}";
+    cmd.CommandText = $"SELECT id, catalog_id, target_id, step_name, method, path, defaults::text, is_archived, request_shape::text, response_shape::text, is_polling, retry_count, retry_duration_ms FROM catalog_step_summaries{where}";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
     {
         var defaultsStr = reader.IsDBNull(6) ? null : reader.GetString(6);
+        var requestShapeStr = reader.IsDBNull(8) ? null : reader.GetString(8);
+        var responseShapeStr = reader.IsDBNull(9) ? null : reader.GetString(9);
         results.Add(new
         {
             id = reader.GetString(0),
@@ -156,22 +162,29 @@ app.MapGet("/catalog-steps", async (string? catalogId, bool showArchived = false
             method = reader.GetString(4),
             path = reader.GetString(5),
             defaults = defaultsStr != null ? JsonSerializer.Deserialize<JsonElement>(defaultsStr) : (JsonElement?)null,
-            isArchived = reader.GetBoolean(7)
+            isArchived = reader.GetBoolean(7),
+            requestShape = requestShapeStr != null ? JsonSerializer.Deserialize<JsonElement>(requestShapeStr) : (JsonElement?)null,
+            responseShape = responseShapeStr != null ? JsonSerializer.Deserialize<JsonElement>(responseShapeStr) : (JsonElement?)null,
+            isPolling = reader.GetBoolean(10),
+            retryCount = reader.IsDBNull(11) ? (int?)null : reader.GetInt32(11),
+            retryDurationMs = reader.IsDBNull(12) ? (int?)null : reader.GetInt32(12)
         });
     }
     return Results.Ok(results);
 });
 
-app.MapGet("/workflows", async () =>
+app.MapGet("/workflows", async (bool showArchived = false) =>
 {
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = "SELECT id, name, archived FROM workflow_summaries";
+    cmd.CommandText = showArchived
+        ? "SELECT id, name, description, archived FROM workflow_summaries"
+        : "SELECT id, name, description, archived FROM workflow_summaries WHERE archived = false";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
-        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), isArchived = reader.GetBoolean(2) });
+        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), description = reader.GetString(2), isArchived = reader.GetBoolean(3) });
     return Results.Ok(results);
 });
 
@@ -209,6 +222,36 @@ app.MapPost("/api/workflows/{id}/run", async (string id, TriggerRunRequest body)
     }
 
     return Results.Ok(new { runId });
+});
+
+app.MapGet("/runs", async (int? limit) =>
+{
+    await using var conn = new NpgsqlConnection(connectionString);
+    await conn.OpenAsync();
+    await using var cmd = conn.CreateCommand();
+    cmd.CommandText = @"
+        SELECT r.id, r.workflow_id, w.name, r.passed, r.started_at, r.duration_ms
+        FROM test_run_summaries r
+        LEFT JOIN workflow_summaries w ON w.id = r.workflow_id
+        ORDER BY r.started_at DESC";
+    if (limit.HasValue)
+    {
+        cmd.CommandText += $" LIMIT ${cmd.Parameters.Count + 1}";
+        cmd.Parameters.Add(new NpgsqlParameter { Value = limit.Value });
+    }
+    var results = new List<object>();
+    await using var reader = await cmd.ExecuteReaderAsync();
+    while (await reader.ReadAsync())
+        results.Add(new
+        {
+            id = reader.GetString(0),
+            workflowId = reader.GetString(1),
+            workflowName = reader.IsDBNull(2) ? "" : reader.GetString(2),
+            passed = reader.IsDBNull(3) ? (bool?)null : reader.GetBoolean(3),
+            startedAt = reader.GetFieldValue<DateTimeOffset>(4),
+            durationMs = reader.IsDBNull(5) ? (long?)null : reader.GetInt64(5)
+        });
+    return Results.Ok(results);
 });
 
 // ── Ping ──────────────────────────────────────────────────────────────────────

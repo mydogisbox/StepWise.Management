@@ -1,0 +1,12 @@
+{
+  "name": "Catalog_11_ArchiveCatalog",
+  "steps": [
+    { "build": "createCatalog" },
+    { "build": "archiveCatalog" },
+    { "step": "postCatalogCommands" },
+    { "step": "getCatalog" }
+  ],
+  "assertions": [
+    { "equal": ["$getCatalog.isArchived", "true"] }
+  ]
+}

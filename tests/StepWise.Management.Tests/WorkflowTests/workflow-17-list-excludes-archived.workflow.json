@@ -1,12 +1,12 @@
 {
-  "name": "Workflow_14_ArchiveWorkflow",
+  "name": "Workflow_17_ListExcludesArchived",
   "steps": [
     { "build": "createWorkflow" },
     { "build": "archiveWorkflow" },
     { "step": "postWorkflowCommands" },
-    { "step": "getWorkflow" }
+    { "step": "listWorkflows" }
   ],
   "assertions": [
-    { "equal": ["$getWorkflow.isArchived", "true"] }
+    { "empty": "$listWorkflows[?name=createWorkflow.payload.name]" }
   ]
 }

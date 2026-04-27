@@ -1,0 +1,13 @@
+{
+  "name": "Target_02_Unarchive",
+  "steps": [
+    { "build": "createTarget" },
+    { "build": "archiveTarget" },
+    { "build": "unarchiveTarget" },
+    { "step": "postTargetCommands" },
+    { "step": "getTarget" }
+  ],
+  "assertions": [
+    { "equal": ["$getTarget.isArchived", "false"] }
+  ]
+}

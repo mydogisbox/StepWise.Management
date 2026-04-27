@@ -1,0 +1,28 @@
+{
+  "name": "Catalog_10_UpdateCatalog",
+  "steps": [
+    {
+      "build": "createCatalog",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "original-catalog" }
+        }}
+      }
+    },
+    {
+      "build": "updateCatalog",
+      "with": {
+        "payload": { "static": {
+          "name": { "static": "updated-catalog" },
+          "description": { "static": "A useful catalog" }
+        }}
+      }
+    },
+    { "step": "postCatalogCommands" },
+    { "step": "getCatalog" }
+  ],
+  "assertions": [
+    { "equal": ["$getCatalog.name", "updated-catalog"] },
+    { "equal": ["$getCatalog.description", "A useful catalog"] }
+  ]
+}

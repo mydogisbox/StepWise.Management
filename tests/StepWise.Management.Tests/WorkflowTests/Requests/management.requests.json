@@ -79,6 +79,20 @@
         }}
       }
     },
+    "archiveTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "ArchiveTarget" },
+        "payload": { "static": {} }
+      }
+    },
+    "archiveCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "ArchiveCatalog" },
+        "payload": { "static": {} }
+      }
+    },
     "archiveStep": {
       "accumulateAs": "catalogStepItems",
       "defaults": {
@@ -229,6 +243,66 @@
       "pathParams": {
         "runId": { "from": "runWorkflow.runId" }
       }
+    },
+    "updateTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "UpdateTarget" },
+        "payload": { "static": {
+          "name": { "generated": "guid" },
+          "baseUrl": { "static": "http://localhost:5000" }
+        }}
+      }
+    },
+    "unarchiveTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "UnarchiveTarget" },
+        "payload": { "static": {} }
+      }
+    },
+    "updateCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "UpdateCatalog" },
+        "payload": { "static": {
+          "name": { "generated": "guid" },
+          "description": { "static": "" }
+        }}
+      }
+    },
+    "unarchiveCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "UnarchiveCatalog" },
+        "payload": { "static": {} }
+      }
+    },
+    "unarchiveStep": {
+      "accumulateAs": "catalogStepItems",
+      "defaults": {
+        "type": { "static": "UnarchiveStep" },
+        "payload": { "static": {} }
+      }
+    },
+    "updateWorkflowDescription": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "UpdateDescription" },
+        "payload": { "static": {
+          "description": { "static": "" }
+        }}
+      }
+    },
+    "listWorkflows": {
+      "target": "management",
+      "method": "GET",
+      "path": "/workflows"
+    },
+    "listRuns": {
+      "target": "management",
+      "method": "GET",
+      "path": "/runs"
     }
   }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "Target_05_ListIncludesArchived",
+  "steps": [
+    { "build": "createTarget" },
+    { "build": "archiveTarget" },
+    { "step": "postTargetCommands" },
+    {
+      "step": "listTargets",
+      "query": {
+        "showArchived": { "static": "true" }
+      }
+    }
+  ],
+  "assertions": [
+    { "equal": ["$listTargets[?name=createTarget.payload.name].isArchived", "true"] }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Catalog_08_ErrorCapturesStatus",
+  "steps": [
+    {
+      "build": "upsertStep",
+      "with": {
+        "payload": { "static": {
+          "catalogId": { "static": "" }
+        }}
+      }
+    },
+    { "step": "postCatalogStepCommands", "captureFullResponseAs": "errorResponse" }
+  ],
+  "assertions": [
+    { "equal": ["$errorResponse.status", "422"] },
+    { "notEmpty": "$errorResponse.body.error" }
+  ]
+}

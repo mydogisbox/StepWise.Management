@@ -13,7 +13,7 @@
     { "step": "getWorkflow" }
   ],
   "assertions": [
-    { "equal": ["getWorkflow.name", "Test Workflow 6"] },
-    { "empty": "getWorkflow.steps" }
+    { "equal": ["$getWorkflow.name", "Test Workflow 6"] },
+    { "empty": "$getWorkflow.steps" }
   ]
 }

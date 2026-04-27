@@ -1,18 +1,16 @@
 {
-  "name": "Catalog_06_ListExcludesArchived",
+  "name": "Catalog_09_SuccessCapturesStatus",
   "steps": [
     { "build": "createTarget" },
     { "step": "postTargetCommands" },
     { "step": "listTargets" },
     { "build": "createCatalog" },
     { "step": "postCatalogCommands" },
-    { "step": "listCatalogs" },
     { "build": "upsertStep" },
-    { "build": "archiveStep" },
-    { "step": "postCatalogStepCommands" },
-    { "step": "listCatalogSteps" }
+    { "step": "postCatalogStepCommands", "captureFullResponseAs": "successResponse" }
   ],
   "assertions": [
-    { "count": ["$listCatalogSteps", "0"] }
+    { "equal": ["$successResponse.status", "200"] },
+    { "notEmpty": "$successResponse.body" }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "name": "Target_04_ListExcludesArchived",
+  "steps": [
+    { "build": "createTarget" },
+    { "build": "archiveTarget" },
+    { "step": "postTargetCommands" },
+    { "step": "listTargets" }
+  ],
+  "assertions": [
+    { "empty": "$listTargets[?name=createTarget.payload.name]" }
+  ]
+}

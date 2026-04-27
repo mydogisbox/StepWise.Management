@@ -22,11 +22,11 @@
     { "step": "getCatalogStep" }
   ],
   "assertions": [
-    { "equal": ["getCatalogStep.stepName", "getStatus"] },
-    { "equal": ["getCatalogStep.targetId", "listTargets[?name=createTarget.payload.name].id"] },
-    { "equal": ["getCatalogStep.catalogId", "listCatalogs[?name=createCatalog.payload.name].id"] },
-    { "equal": ["getCatalogStep.method", "GET"] },
-    { "equal": ["getCatalogStep.path", "/api/status"] },
-    { "equal": ["getCatalogStep.defaults.param", "value1"] }
+    { "equal": ["$getCatalogStep.stepName", "getStatus"] },
+    { "equal": ["$getCatalogStep.targetId", "$listTargets[?name=createTarget.payload.name].id"] },
+    { "equal": ["$getCatalogStep.catalogId", "$listCatalogs[?name=createCatalog.payload.name].id"] },
+    { "equal": ["$getCatalogStep.method", "GET"] },
+    { "equal": ["$getCatalogStep.path", "/api/status"] },
+    { "equal": ["$getCatalogStep.defaults.param", "value1"] }
   ]
 }
