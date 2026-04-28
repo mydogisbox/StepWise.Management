@@ -4,17 +4,20 @@ set -eo pipefail
 
 API_URL="http://localhost:5000"
 API_PROJECT="src/StepWise.Management"
-EXAMPLE_URL="http://localhost:3001"
+EXAMPLE_URL="http://localhost:5010"
 EXAMPLE_PROJECT="ExampleApi"
 TEST_PROJECT="tests/StepWise.Management.Tests"
-PID_FILE="/tmp/stepwise-management-api.pid"
-EXAMPLE_PID_FILE="/tmp/stepwise-example-api.pid"
 
 DB_CONTAINER="stepwise-management-db"
 DB_PORT=5433
 DB_NAME="stepwise_management"
 DB_USER="postgres"
 DB_PASS="postgres"
+
+kill_apis() {
+  pkill -f "project src/StepWise.Management" 2>/dev/null || true
+  pkill -f "project ExampleApi" 2>/dev/null || true
+}
 
 # ── Database ─────────────────────────────────────────────────────────────────
 
@@ -58,7 +61,6 @@ ensure_db
 # ── Migrations ────────────────────────────────────────────────────────────────
 
 run_migrations() {
-  # Ensure migration tracking table exists
   docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -q -c "
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version TEXT PRIMARY KEY,
@@ -84,27 +86,26 @@ run_migrations() {
   done
 }
 
+# ── Reset ─────────────────────────────────────────────────────────────────────
+
+echo "→ Stopping any running APIs..."
+kill_apis
+
+echo "→ Resetting database..."
+docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c \
+  "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();"
+docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "DROP DATABASE IF EXISTS $DB_NAME;"
+docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "CREATE DATABASE $DB_NAME;"
+
+# ── Migrations ────────────────────────────────────────────────────────────────
+
 echo "→ Running migrations..."
 run_migrations
 
 # ── API ───────────────────────────────────────────────────────────────────────
 
-# Kill any previously started API instance tracked by this script
-if [ -f "$PID_FILE" ]; then
-  OLD_PID=$(cat "$PID_FILE")
-  if kill -0 "$OLD_PID" 2>/dev/null; then
-    echo "→ Stopping previous API instance (pid $OLD_PID)..."
-    kill "$OLD_PID"
-    sleep 1
-  fi
-  rm "$PID_FILE"
-fi
-
-# Start the management API fresh
-echo "→ Starting API (latest build)..."
+echo "→ Starting API..."
 dotnet run --project "$API_PROJECT" &
-API_PID=$!
-echo $API_PID > "$PID_FILE"
 
 echo -n "  Waiting for API"
 for i in {1..30}; do
@@ -116,28 +117,12 @@ for i in {1..30}; do
   sleep 1
   if [ $i -eq 30 ]; then
     echo " timed out"
-    kill $API_PID
-    rm "$PID_FILE"
     exit 1
   fi
 done
 
-# Kill any previously started Example API instance
-if [ -f "$EXAMPLE_PID_FILE" ]; then
-  OLD_PID=$(cat "$EXAMPLE_PID_FILE")
-  if kill -0 "$OLD_PID" 2>/dev/null; then
-    echo "→ Stopping previous Example API instance (pid $OLD_PID)..."
-    kill "$OLD_PID"
-    sleep 1
-  fi
-  rm "$EXAMPLE_PID_FILE"
-fi
-
-# Start the Example API
 echo "→ Starting Example API..."
-dotnet run --project "$EXAMPLE_PROJECT" &
-EXAMPLE_PID=$!
-echo $EXAMPLE_PID > "$EXAMPLE_PID_FILE"
+dotnet run --project "$EXAMPLE_PROJECT" --urls "$EXAMPLE_URL" &
 
 echo -n "  Waiting for Example API"
 for i in {1..30}; do
@@ -149,10 +134,6 @@ for i in {1..30}; do
   sleep 1
   if [ $i -eq 30 ]; then
     echo " timed out"
-    kill $EXAMPLE_PID
-    rm "$EXAMPLE_PID_FILE"
-    kill $(cat "$PID_FILE")
-    rm "$PID_FILE"
     exit 1
   fi
 done
@@ -165,9 +146,7 @@ dotnet test "$TEST_PROJECT" #--logger "console;verbosity=normal"
 TEST_EXIT=$?
 set -e
 
-# Shut down both APIs
 echo "→ Stopping APIs..."
-kill $(cat "$PID_FILE") && rm "$PID_FILE"
-kill $(cat "$EXAMPLE_PID_FILE") && rm "$EXAMPLE_PID_FILE"
+kill_apis
 
 exit $TEST_EXIT

@@ -95,7 +95,7 @@ done
 # ── Example API ───────────────────────────────────────────────────────────────
 
 EXAMPLE_PID_FILE="/tmp/stepwise-example-api.pid"
-EXAMPLE_URL="http://localhost:3001"
+EXAMPLE_URL="http://localhost:5010"
 
 if [ -f "$EXAMPLE_PID_FILE" ]; then
   OLD_PID=$(cat "$EXAMPLE_PID_FILE")
@@ -108,7 +108,7 @@ if [ -f "$EXAMPLE_PID_FILE" ]; then
 fi
 
 echo "→ Starting Example API..."
-dotnet run --project ExampleApi &
+dotnet run --project ExampleApi --urls "$EXAMPLE_URL" &
 EXAMPLE_PID=$!
 echo $EXAMPLE_PID > "$EXAMPLE_PID_FILE"
 
@@ -128,5 +128,5 @@ for i in {1..30}; do
 done
 
 echo "  Management: http://localhost:5000"
-echo "  Example API: http://localhost:3001"
+echo "  Example API: http://localhost:5010"
 wait $API_PID
