@@ -1,0 +1,10 @@
+{
+  "name": "Example_01_ListProducts_NotEmpty",
+  "steps": [
+    { "step": "adminCreateProduct" },
+    { "step": "listProducts" }
+  ],
+  "assertions": [
+    { "notEmpty": "$listProducts" }
+  ]
+}

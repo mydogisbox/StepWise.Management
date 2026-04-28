@@ -1,0 +1,35 @@
+{
+  "name": "Example_06_VoucherDiscount_DiscountApplied",
+  "steps": [
+    { "step": "adminCreateUser" },
+    {
+      "step": "adminCreateProduct",
+      "with": {
+        "category": { "static": "voucher-test-cat" },
+        "price": { "static": 100.00 },
+        "stock": { "static": 5 }
+      }
+    },
+    {
+      "step": "adminCreateVoucher",
+      "with": {
+        "code": { "static": "HALFOFF-TEST" },
+        "discountPct": { "static": 50 }
+      }
+    },
+    { "step": "login" },
+    { "step": "addToCart" },
+    {
+      "step": "placeOrder",
+      "with": {
+        "voucherCode": { "static": "HALFOFF-TEST" }
+      }
+    },
+    { "step": "getOrder" }
+  ],
+  "assertions": [
+    { "equal": ["$placeOrder.voucherCode", "HALFOFF-TEST"] },
+    { "equal": ["$placeOrder.status", "pending"] },
+    { "equal": ["$getOrder.voucherCode", "HALFOFF-TEST"] }
+  ]
+}

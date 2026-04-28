@@ -1,0 +1,20 @@
+{
+  "name": "Example_03_FilterByCategory_ReturnsMatchingProducts",
+  "steps": [
+    {
+      "step": "adminCreateProduct",
+      "with": {
+        "category": { "static": "artisan-ceramics-xyz" }
+      }
+    },
+    {
+      "step": "listProducts",
+      "query": {
+        "category": { "static": "artisan-ceramics-xyz" }
+      }
+    }
+  ],
+  "assertions": [
+    { "notEmpty": "$listProducts" }
+  ]
+}

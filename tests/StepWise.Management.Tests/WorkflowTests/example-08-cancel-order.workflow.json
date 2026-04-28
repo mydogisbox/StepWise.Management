@@ -1,0 +1,14 @@
+{
+  "name": "Example_08_CancelOrder_StatusIsCancelled",
+  "steps": [
+    { "step": "adminCreateUser" },
+    { "step": "adminCreateProduct" },
+    { "step": "login" },
+    { "step": "addToCart" },
+    { "step": "placeOrder" },
+    { "step": "cancelOrder" }
+  ],
+  "assertions": [
+    { "equal": ["$cancelOrder.status", "cancelled"] }
+  ]
+}

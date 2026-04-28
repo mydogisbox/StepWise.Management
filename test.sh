@@ -4,8 +4,11 @@ set -eo pipefail
 
 API_URL="http://localhost:5000"
 API_PROJECT="src/StepWise.Management"
+EXAMPLE_URL="http://localhost:3001"
+EXAMPLE_PROJECT="ExampleApi"
 TEST_PROJECT="tests/StepWise.Management.Tests"
 PID_FILE="/tmp/stepwise-management-api.pid"
+EXAMPLE_PID_FILE="/tmp/stepwise-example-api.pid"
 
 DB_CONTAINER="stepwise-management-db"
 DB_PORT=5433
@@ -97,13 +100,12 @@ if [ -f "$PID_FILE" ]; then
   rm "$PID_FILE"
 fi
 
-# Start the API fresh
+# Start the management API fresh
 echo "→ Starting API (latest build)..."
 dotnet run --project "$API_PROJECT" &
 API_PID=$!
 echo $API_PID > "$PID_FILE"
 
-# Wait for the API to become ready
 echo -n "  Waiting for API"
 for i in {1..30}; do
   if curl -fs "$API_URL/api/ping" >/dev/null; then
@@ -120,6 +122,41 @@ for i in {1..30}; do
   fi
 done
 
+# Kill any previously started Example API instance
+if [ -f "$EXAMPLE_PID_FILE" ]; then
+  OLD_PID=$(cat "$EXAMPLE_PID_FILE")
+  if kill -0 "$OLD_PID" 2>/dev/null; then
+    echo "→ Stopping previous Example API instance (pid $OLD_PID)..."
+    kill "$OLD_PID"
+    sleep 1
+  fi
+  rm "$EXAMPLE_PID_FILE"
+fi
+
+# Start the Example API
+echo "→ Starting Example API..."
+dotnet run --project "$EXAMPLE_PROJECT" &
+EXAMPLE_PID=$!
+echo $EXAMPLE_PID > "$EXAMPLE_PID_FILE"
+
+echo -n "  Waiting for Example API"
+for i in {1..30}; do
+  if curl -fs "$EXAMPLE_URL/products" >/dev/null; then
+    echo " ready"
+    break
+  fi
+  echo -n "."
+  sleep 1
+  if [ $i -eq 30 ]; then
+    echo " timed out"
+    kill $EXAMPLE_PID
+    rm "$EXAMPLE_PID_FILE"
+    kill $(cat "$PID_FILE")
+    rm "$PID_FILE"
+    exit 1
+  fi
+done
+
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 echo "→ Running tests..."
@@ -128,9 +165,9 @@ dotnet test "$TEST_PROJECT" #--logger "console;verbosity=normal"
 TEST_EXIT=$?
 set -e
 
-# Shut down the API
-echo "→ Stopping API..."
-kill $(cat "$PID_FILE")
-rm "$PID_FILE"
+# Shut down both APIs
+echo "→ Stopping APIs..."
+kill $(cat "$PID_FILE") && rm "$PID_FILE"
+kill $(cat "$EXAMPLE_PID_FILE") && rm "$EXAMPLE_PID_FILE"
 
 exit $TEST_EXIT

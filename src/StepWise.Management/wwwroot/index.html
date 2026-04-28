@@ -5,665 +5,746 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StepWise Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    [x-cloak] { display: none !important; }
-    .badge-pass { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800; }
-    .badge-fail { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800; }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
 <div class="flex h-screen overflow-hidden">
 
   <!-- Sidebar -->
-  <aside class="w-56 bg-gray-900 text-gray-100 flex flex-col flex-shrink-0">
-    <div class="px-6 py-5 border-b border-gray-700">
-      <h1 class="text-lg font-bold tracking-tight">StepWise</h1>
+  <aside class="w-52 bg-gray-900 text-gray-100 flex flex-col flex-shrink-0">
+    <div class="px-5 py-4 border-b border-gray-700">
+      <h1 class="text-base font-bold tracking-tight">StepWise</h1>
       <p class="text-xs text-gray-400 mt-0.5">Management</p>
     </div>
-    <nav class="flex-1 py-4 space-y-1 px-3">
-      <button onclick="showView('catalogs')" id="nav-catalogs"
-        class="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors nav-btn">
-        Catalogs
-      </button>
-      <button onclick="showView('workflows')" id="nav-workflows"
-        class="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors nav-btn">
-        Workflows
-      </button>
-      <button onclick="showView('runs')" id="nav-runs"
-        class="w-full text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors nav-btn">
-        Test Runs
-      </button>
+    <nav class="flex-1 py-3 space-y-0.5 px-2">
+      <button onclick="showView('catalogs')" id="nav-catalogs" class="nav-btn w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 transition-colors">Catalogs</button>
+      <button onclick="showView('targets')"  id="nav-targets"  class="nav-btn w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 transition-colors">Targets</button>
+      <button onclick="showView('workflows')" id="nav-workflows" class="nav-btn w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 transition-colors">Workflows</button>
+      <button onclick="showView('runs')"     id="nav-runs"     class="nav-btn w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-700 transition-colors">Runs</button>
     </nav>
   </aside>
 
-  <!-- Main content -->
-  <main class="flex-1 overflow-auto">
+  <!-- Main -->
+  <main class="flex-1 overflow-hidden">
 
-    <!-- ===== CATALOGS VIEW ===== -->
-    <div id="view-catalogs" class="hidden p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold">Catalogs</h2>
-        <button onclick="openNewCatalogModal()"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
-          + New Catalog
-        </button>
-      </div>
-
-      <div id="catalog-list-container">
-        <p class="text-gray-500 text-sm">Loading...</p>
+    <!-- ===== CATALOGS ===== -->
+    <div id="view-catalogs" class="hidden flex h-full">
+      <div class="flex-1 p-8 overflow-auto min-w-0">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold">Catalogs</h2>
+          <button onclick="openModal('modal-new-catalog')" class="btn-primary">+ New Catalog</button>
+        </div>
+        <div id="catalog-list"></div>
       </div>
 
       <!-- Catalog detail panel -->
-      <div id="catalog-detail" class="hidden mt-8 bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold" id="catalog-detail-name"></h3>
-          <button onclick="hideCatalogDetail()" class="text-gray-400 hover:text-gray-600 text-sm">Close</button>
-        </div>
-
-        <!-- Catalog tabs -->
-        <div class="border-b border-gray-200 mb-4">
-          <nav class="flex gap-6 text-sm">
-            <button onclick="showCatalogTab('steps')" class="catalog-tab py-2 border-b-2 border-indigo-600 text-indigo-600 font-medium" data-tab="steps">Steps</button>
-            <button onclick="showCatalogTab('targets')" class="catalog-tab py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="targets">Targets</button>
-          </nav>
-        </div>
-
-        <!-- Steps tab -->
-        <div id="cat-tab-steps" class="catalog-tab-panel">
-          <div id="catalog-steps-list" class="mb-4"></div>
-          <hr class="my-4" />
-          <h4 class="text-sm font-medium text-gray-700 mb-3">Add / Update Step</h4>
-          <div class="space-y-3">
-            <input id="step-name-input" type="text" placeholder="Step name"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <div class="grid grid-cols-2 gap-3">
-              <input id="step-target-input" type="text" placeholder="Target key (e.g. api)"
-                class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              <select id="step-method-input"
-                class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option>GET</option><option selected>POST</option><option>PUT</option>
-                <option>PATCH</option><option>DELETE</option>
-              </select>
-            </div>
-            <input id="step-path-input" type="text" placeholder="Path (e.g. /api/users)"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onclick="upsertStep()"
-              class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">
-              Save Step
-            </button>
+      <div id="catalog-detail" class="hidden border-l bg-white flex-shrink-0 flex flex-col" style="width:520px">
+        <div class="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+          <h3 class="font-semibold truncate mr-2" id="catalog-detail-title">Catalog</h3>
+          <div class="flex items-center gap-2">
+            <button id="catalog-archive-btn" onclick="toggleArchiveCatalog()" class="btn-sm-secondary"></button>
+            <button onclick="closeCatalogDetail()" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
           </div>
         </div>
-
-        <!-- Targets tab -->
-        <div id="cat-tab-targets" class="catalog-tab-panel hidden">
-          <div id="catalog-targets-list" class="mb-4 space-y-2"></div>
-          <hr class="my-4" />
-          <h4 class="text-sm font-medium text-gray-700 mb-3">Add / Update Target</h4>
-          <div class="space-y-3">
-            <div class="flex gap-2">
-              <input id="cat-target-name" type="text" placeholder="Target key (e.g. api)"
-                class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              <input id="cat-target-url" type="text" placeholder="Base URL"
-                class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <div class="p-6 space-y-4 overflow-auto flex-1">
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+              <input id="catalog-name-input" type="text" class="input w-full" />
             </div>
-            <button onclick="upsertCatalogTarget()"
-              class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">
-              Save Target
-            </button>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Description</label>
+              <input id="catalog-desc-input" type="text" class="input w-full" />
+            </div>
+            <div class="flex items-end">
+              <button onclick="saveCatalogInfo()" class="btn-primary h-9">Save</button>
+            </div>
+          </div>
+          <div class="pt-2">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-medium text-gray-700">Steps</h4>
+              <button onclick="openStepForm(null)" class="btn-sm-primary">+ Add Step</button>
+            </div>
+            <div id="catalog-steps-list"></div>
+          </div>
+          <!-- Step form -->
+          <div id="step-form" class="hidden border rounded-lg p-4 bg-gray-50 space-y-3">
+            <p id="step-form-title" class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Add Step</p>
+            <input type="hidden" id="step-form-id" />
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Step Name</label>
+                <input id="step-form-name" type="text" class="input w-full" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Target</label>
+                <select id="step-form-target" class="input w-full"></select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Method</label>
+                <select id="step-form-method" class="input w-full">
+                  <option>GET</option><option selected>POST</option><option>PUT</option>
+                  <option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Path</label>
+                <input id="step-form-path" type="text" placeholder="/api/resource" class="input w-full" />
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="saveStep()" class="btn-primary">Save Step</button>
+              <button onclick="closeStepForm()" class="btn-secondary">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ===== WORKFLOWS VIEW ===== -->
-    <div id="view-workflows" class="hidden p-8">
+    <!-- ===== TARGETS ===== -->
+    <div id="view-targets" class="hidden h-full overflow-auto p-8 max-w-4xl">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold">Workflows</h2>
-        <button onclick="openNewWorkflowModal()"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
-          + New Workflow
-        </button>
+        <h2 class="text-xl font-bold">Targets</h2>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input type="checkbox" id="targets-show-archived" onchange="loadTargets()" class="rounded" />
+            Show archived
+          </label>
+          <button onclick="openNewTargetModal()" class="btn-primary">+ New Target</button>
+        </div>
       </div>
+      <div id="target-list"></div>
+    </div>
 
-      <div id="workflow-list-container">
-        <p class="text-gray-500 text-sm">Loading...</p>
-      </div>
-
-      <!-- Workflow edit panel -->
-      <div id="workflow-detail" class="hidden mt-8 bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
+    <!-- ===== WORKFLOWS ===== -->
+    <div id="view-workflows" class="hidden flex h-full">
+      <div class="flex-1 p-8 overflow-auto min-w-0">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold">Workflows</h2>
           <div class="flex items-center gap-3">
-            <h3 class="text-lg font-semibold" id="workflow-detail-name"></h3>
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" id="workflows-show-archived" onchange="loadWorkflows()" class="rounded" />
+              Show archived
+            </label>
+            <button onclick="openModal('modal-new-workflow')" class="btn-primary">+ New Workflow</button>
+          </div>
+        </div>
+        <div id="workflow-list"></div>
+      </div>
+
+      <!-- Workflow detail panel -->
+      <div id="workflow-detail" class="hidden border-l bg-white flex-shrink-0 flex flex-col" style="width:560px">
+        <div class="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold truncate mr-2" id="workflow-detail-title">Workflow</h3>
             <span id="workflow-archived-badge" class="hidden text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Archived</span>
           </div>
-          <div class="flex gap-2">
-            <button onclick="runWorkflow()" id="run-workflow-btn"
-              class="px-3 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700">
-              Run
-            </button>
-            <button onclick="toggleArchiveWorkflow()" id="archive-workflow-btn"
-              class="px-3 py-1.5 bg-yellow-500 text-white rounded text-sm font-medium hover:bg-yellow-600">
-              Archive
-            </button>
-            <button onclick="hideWorkflowDetail()" class="text-gray-400 hover:text-gray-600 text-sm">Close</button>
+          <div class="flex items-center gap-2">
+            <button onclick="triggerRun()" class="btn-sm-green">▶ Run</button>
+            <button id="workflow-archive-btn" onclick="toggleArchiveWorkflow()" class="btn-sm-secondary"></button>
+            <button onclick="closeWorkflowDetail()" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
           </div>
         </div>
-
-        <!-- Rename -->
-        <div class="mb-4 flex gap-2">
-          <input id="workflow-rename-input" type="text" placeholder="New name"
-            class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          <button onclick="renameWorkflow()"
-            class="px-3 py-2 bg-gray-100 border border-gray-300 rounded text-sm hover:bg-gray-200">
-            Rename
-          </button>
-        </div>
-
-        <!-- Tabs -->
-        <div class="border-b border-gray-200 mb-4">
-          <nav class="flex gap-6 text-sm">
-            <button onclick="showWorkflowTab('steps')" class="workflow-tab py-2 border-b-2 border-indigo-600 text-indigo-600 font-medium" data-tab="steps">Steps</button>
-            <button onclick="showWorkflowTab('catalogs')" class="workflow-tab py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="catalogs">Catalogs</button>
-            <button onclick="showWorkflowTab('assertions')" class="workflow-tab py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="assertions">Assertions</button>
-          </nav>
-        </div>
-
-        <!-- Steps tab -->
-        <div id="wf-tab-steps" class="workflow-tab-panel">
-          <div id="workflow-steps-list" class="mb-4 space-y-2"></div>
-          <div class="border rounded p-3 bg-gray-50 space-y-2">
-            <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Add Step Invocation</p>
-            <input id="wf-step-name" type="text" placeholder="Step name (matches catalog step)"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <input id="wf-step-capture" type="text" placeholder="Capture as (optional)"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onclick="addWorkflowStep()"
-              class="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
-              Add Step
-            </button>
+        <div class="p-6 space-y-4 overflow-auto flex-1">
+          <!-- Name + Description -->
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+              <input id="workflow-name-input" type="text" class="input w-full" />
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Description</label>
+              <input id="workflow-desc-input" type="text" class="input w-full" />
+            </div>
+            <div class="flex items-end">
+              <button onclick="saveWorkflowInfo()" class="btn-primary h-9">Save</button>
+            </div>
           </div>
-        </div>
 
-        <!-- Catalogs tab -->
-        <div id="wf-tab-catalogs" class="workflow-tab-panel hidden">
-          <div id="workflow-catalogs-list" class="mb-4 space-y-2"></div>
-          <div class="flex gap-2">
-            <input id="wf-catalog-id" type="text" placeholder="Catalog ID"
-              class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onclick="addWorkflowCatalog()"
-              class="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
-              Add
-            </button>
+          <!-- Tabs -->
+          <div class="border-b border-gray-200">
+            <nav class="flex gap-4 text-sm">
+              <button onclick="showWorkflowTab('steps')" data-tab="steps" class="wf-tab py-2.5 border-b-2 font-medium">Steps</button>
+              <button onclick="showWorkflowTab('assertions')" data-tab="assertions" class="wf-tab py-2.5 border-b-2">Assertions</button>
+            </nav>
           </div>
-        </div>
 
-        <!-- Assertions tab -->
-        <div id="wf-tab-assertions" class="workflow-tab-panel hidden">
-          <div id="workflow-assertions-list" class="mb-4 space-y-2"></div>
-          <div class="border rounded p-3 bg-gray-50 space-y-2">
-            <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Add Assertion</p>
-            <select id="wf-assertion-type"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="equal">equal</option>
-              <option value="notEqual">notEqual</option>
-              <option value="single">single</option>
-              <option value="empty">empty</option>
-              <option value="notEmpty">notEmpty</option>
-            </select>
-            <input id="wf-assertion-val1" type="text" placeholder="Value / path 1"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <input id="wf-assertion-val2" type="text" placeholder="Value 2 (for equal/notEqual)"
-              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <button onclick="addWorkflowAssertion()"
-              class="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">
-              Add Assertion
-            </button>
+          <!-- Steps tab -->
+          <div id="wf-tab-steps" class="wf-panel space-y-2">
+            <div class="flex justify-end">
+              <button onclick="openAddStepModal()" class="btn-sm-primary">+ Add Step</button>
+            </div>
+            <div id="workflow-steps-list"></div>
           </div>
-        </div>
 
-        <!-- Run result inline -->
-        <div id="run-result-panel" class="hidden mt-4 border rounded p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span id="run-result-badge" class="text-xs font-semibold px-2 py-0.5 rounded"></span>
-            <span id="run-result-summary" class="text-sm text-gray-600"></span>
+          <!-- Assertions tab -->
+          <div id="wf-tab-assertions" class="wf-panel hidden space-y-2">
+            <div id="workflow-assertions-list"></div>
+            <div class="border rounded-lg p-4 bg-gray-50 space-y-3">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Add Assertion</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">Type</label>
+                  <select id="assertion-type" onchange="updateAssertionForm()" class="input w-full">
+                    <option value="equal">equal</option>
+                    <option value="notEqual">notEqual</option>
+                    <option value="count">count</option>
+                    <option value="empty">empty</option>
+                    <option value="notEmpty">notEmpty</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">Left / Path</label>
+                  <input id="assertion-val1" type="text" placeholder="$step.field" class="input w-full" />
+                </div>
+              </div>
+              <div id="assertion-val2-row">
+                <label class="block text-xs text-gray-500 mb-1">Right / Value</label>
+                <input id="assertion-val2" type="text" placeholder="expected value" class="input w-full" />
+              </div>
+              <button onclick="addAssertion()" class="btn-primary">Add</button>
+            </div>
           </div>
-          <pre id="run-result-json" class="text-xs bg-gray-50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap"></pre>
+
+          <!-- Run result panel -->
+          <div id="run-result-panel" class="hidden border rounded-lg p-4 space-y-2">
+            <div class="flex items-center gap-3">
+              <span id="run-result-badge" class="text-xs font-semibold px-2 py-0.5 rounded"></span>
+              <span id="run-result-msg" class="text-sm text-gray-600"></span>
+            </div>
+            <pre id="run-result-json" class="text-xs bg-gray-50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap hidden"></pre>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ===== RUNS VIEW ===== -->
-    <div id="view-runs" class="hidden p-8">
+    <!-- ===== RUNS ===== -->
+    <div id="view-runs" class="hidden h-full overflow-auto p-8 max-w-5xl">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold">Test Runs</h2>
+        <h2 class="text-xl font-bold">Runs</h2>
         <button onclick="loadRuns()" class="text-sm text-indigo-600 hover:underline">Refresh</button>
       </div>
-
-      <div id="runs-list-container">
-        <p class="text-gray-500 text-sm">Loading...</p>
-      </div>
+      <div id="runs-list"></div>
 
       <!-- Run detail -->
-      <div id="run-detail" class="hidden mt-8 bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">Run Detail</h3>
-          <button onclick="hideRunDetail()" class="text-gray-400 hover:text-gray-600 text-sm">Close</button>
+      <div id="run-detail" class="hidden mt-8 bg-white rounded-lg shadow">
+        <div class="flex items-center justify-between px-6 py-4 border-b">
+          <h3 class="font-semibold">Run Detail</h3>
+          <button onclick="closeRunDetail()" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
         </div>
-        <div id="run-detail-content"></div>
+        <div id="run-detail-content" class="p-6"></div>
       </div>
     </div>
 
   </main>
 </div>
 
-<!-- ===== NEW CATALOG MODAL ===== -->
-<div id="modal-new-catalog" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-    <h3 class="text-lg font-semibold mb-4">New Catalog</h3>
-    <div class="space-y-3">
-      <input id="new-catalog-name" type="text" placeholder="Catalog name"
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        onkeydown="if(event.key==='Enter') createCatalog()" />
-      <div class="flex justify-end gap-2">
-        <button onclick="closeNewCatalogModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-        <button onclick="createCatalog()" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">
-          Create
-        </button>
-      </div>
+<!-- ===== MODAL: New Catalog ===== -->
+<div id="modal-new-catalog" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h3 class="text-base font-semibold mb-4">New Catalog</h3>
+    <input id="new-catalog-name" type="text" placeholder="Catalog name" class="input w-full mb-4"
+      onkeydown="if(event.key==='Enter') createCatalog()" />
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal('modal-new-catalog')" class="btn-secondary">Cancel</button>
+      <button onclick="createCatalog()" class="btn-primary">Create</button>
     </div>
   </div>
 </div>
 
-<!-- ===== NEW WORKFLOW MODAL ===== -->
-<div id="modal-new-workflow" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-    <h3 class="text-lg font-semibold mb-4">New Workflow</h3>
-    <div class="space-y-3">
-      <input id="new-workflow-name" type="text" placeholder="Workflow name"
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        onkeydown="if(event.key==='Enter') createWorkflow()" />
-      <div class="flex justify-end gap-2">
-        <button onclick="closeNewWorkflowModal()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-        <button onclick="createWorkflow()" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">
-          Create
-        </button>
-      </div>
+<!-- ===== MODAL: New / Edit Target ===== -->
+<div id="modal-new-target" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h3 id="target-modal-title" class="text-base font-semibold mb-4">New Target</h3>
+    <input type="hidden" id="target-modal-id" />
+    <div class="space-y-3 mb-4">
+      <input id="target-modal-name" type="text" placeholder="Name" class="input w-full" />
+      <input id="target-modal-url" type="text" placeholder="Base URL (e.g. https://api.example.com)" class="input w-full"
+        onkeydown="if(event.key==='Enter') saveTarget()" />
+    </div>
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal('modal-new-target')" class="btn-secondary">Cancel</button>
+      <button onclick="saveTarget()" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: New Workflow ===== -->
+<div id="modal-new-workflow" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h3 class="text-base font-semibold mb-4">New Workflow</h3>
+    <input id="new-workflow-name" type="text" placeholder="Workflow name" class="input w-full mb-4"
+      onkeydown="if(event.key==='Enter') createWorkflow()" />
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal('modal-new-workflow')" class="btn-secondary">Cancel</button>
+      <button onclick="createWorkflow()" class="btn-primary">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Add Step to Workflow ===== -->
+<div id="modal-add-step" class="modal-backdrop" style="display:none">
+  <div class="modal-box w-full max-w-lg">
+    <h3 class="text-base font-semibold mb-3">Add Step</h3>
+    <input id="step-filter" type="text" placeholder="Filter by name or path…" class="input w-full mb-3"
+      oninput="filterStepPicker(this.value)" />
+    <div id="step-picker-list" class="border rounded overflow-y-auto max-h-72 divide-y"></div>
+    <div class="flex justify-end mt-4">
+      <button onclick="closeModal('modal-add-step')" class="btn-secondary">Cancel</button>
     </div>
   </div>
 </div>
 
 <!-- ===== TOAST ===== -->
-<div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-3 rounded-lg shadow-lg z-50"></div>
+<div id="toast" class="hidden fixed bottom-6 right-6 text-sm px-4 py-3 rounded-lg shadow-lg z-50"></div>
+
+<style type="text/tailwindcss">
+  .input { @apply border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400; }
+  .btn-primary { @apply px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 transition-colors; }
+  .btn-secondary { @apply px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors; }
+  .btn-sm-primary { @apply px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 transition-colors; }
+  .btn-sm-secondary { @apply px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50 transition-colors; }
+  .btn-sm-green { @apply px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors; }
+  .modal-backdrop { @apply fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50; }
+  .modal-box { @apply bg-white rounded-lg shadow-xl p-6 w-full max-w-md; }
+  .nav-btn.active { @apply bg-gray-700 text-white; }
+</style>
 
 <script>
-// ============================================================
-// State
-// ============================================================
+// ── State ────────────────────────────────────────────────────────────────────
 let currentCatalogId = null;
+let currentCatalogState = null;
+let currentCatalogTargets = [];
+let currentEditingStepId = null;
+
 let currentWorkflowId = null;
 let currentWorkflowState = null;
+let allCatalogSteps = [];
 
-// ============================================================
-// Utilities
-// ============================================================
+let runPollTimer = null;
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function uuid() { return crypto.randomUUID(); }
+
 function showToast(msg, isError = false) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = `fixed bottom-6 right-6 text-sm px-4 py-3 rounded-lg shadow-lg z-50 ${
-    isError ? 'bg-red-700 text-white' : 'bg-gray-900 text-white'
-  }`;
+  el.className = `fixed bottom-6 right-6 text-sm px-4 py-3 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-700 text-white' : 'bg-gray-900 text-white'}`;
   el.style.display = 'block';
   setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
 async function api(method, path, body) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' }
-  };
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body !== undefined) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
   const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = text; }
-  if (!res.ok) {
-    const msg = typeof data === 'string' ? data : (data?.error ?? data?.title ?? 'Request failed');
-    throw new Error(msg);
-  }
+  let data; try { data = JSON.parse(text); } catch { data = text; }
+  if (!res.ok) throw new Error(typeof data === 'string' ? data : (data?.error ?? data?.title ?? 'Request failed'));
   return data;
 }
 
-async function sendCommand(aggregate, aggregateId, commandType, payload) {
-  return api('POST', `/${aggregate}/commands`, {
-    aggregateId,
-    commands: [{ type: commandType, payload }]
-  });
+function sendCommand(aggregate, aggregateId, type, payload) {
+  return api('POST', `/${aggregate}/commands`, { aggregateId, commands: [{ type, payload }] });
 }
 
 function formatDate(str) {
-  if (!str) return '';
-  return new Date(str).toLocaleString();
+  if (!str) return '—';
+  return new Date(str).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 }
 
-function badge(passed) {
+function formatDuration(ms) {
+  if (ms == null) return '—';
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+
+function passBadge(passed) {
+  if (passed == null) return '<span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">pending</span>';
   return passed
-    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">PASS</span>'
-    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">FAIL</span>';
+    ? '<span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-800 font-medium">PASS</span>'
+    : '<span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-800 font-medium">FAIL</span>';
 }
 
-// ============================================================
-// Navigation
-// ============================================================
-function showView(name) {
-  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
-  document.getElementById('view-' + name).classList.remove('hidden');
-
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.classList.remove('bg-gray-700', 'text-white');
-  });
-  document.getElementById('nav-' + name).classList.add('bg-gray-700', 'text-white');
-
-  if (name === 'catalogs') loadCatalogs();
-  else if (name === 'workflows') loadWorkflows();
-  else if (name === 'runs') loadRuns();
+function archivedBadge() {
+  return '<span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">archived</span>';
 }
 
-// ============================================================
-// CATALOGS
-// ============================================================
-async function loadCatalogs() {
-  try {
-    const catalogs = await api('GET', '/api/catalogs');
-    renderCatalogList(catalogs);
-  } catch(e) { showToast(e.message, true); }
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function renderCatalogList(catalogs) {
-  const container = document.getElementById('catalog-list-container');
-  if (!catalogs.length) {
-    container.innerHTML = '<p class="text-gray-400 text-sm">No catalogs yet. Create one to get started.</p>';
-    return;
-  }
-  container.innerHTML = `
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  const firstInput = document.querySelector(`#${id} input:not([type=hidden])`);
+  if (firstInput) setTimeout(() => firstInput.focus(), 50);
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function table(headers, rows) {
+  if (!rows.length) return '<p class="text-gray-400 text-sm">Nothing here yet.</p>';
+  return `
     <div class="bg-white rounded-lg shadow overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Steps</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-          </tr>
+          <tr>${headers.map(h => `<th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('')}</tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
-          ${catalogs.map(c => `
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm font-medium text-gray-900">${esc(c.name)}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${c.step_count ?? 0}</td>
-              <td class="px-6 py-4 text-sm text-gray-400">${formatDate(c.created_at)}</td>
-              <td class="px-6 py-4 text-right">
-                <button onclick="viewCatalog('${esc(c.id)}')"
-                  class="text-indigo-600 text-sm hover:underline mr-3">View</button>
-                <button onclick="deleteCatalog('${esc(c.id)}', '${esc(c.name)}')"
-                  class="text-red-500 text-sm hover:underline">Delete</button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
+        <tbody class="divide-y divide-gray-200">${rows.join('')}</tbody>
       </table>
     </div>`;
 }
 
-function openNewCatalogModal() {
-  document.getElementById('new-catalog-name').value = '';
-  document.getElementById('modal-new-catalog').classList.remove('hidden');
-  setTimeout(() => document.getElementById('new-catalog-name').focus(), 50);
+function td(content, cls = '') { return `<td class="px-5 py-3 text-sm ${cls}">${content}</td>`; }
+function tdActions(...btns) { return `<td class="px-5 py-3 text-sm text-right space-x-3">${btns.join('')}</td>`; }
+function actionLink(label, onclick, color = 'indigo') {
+  return `<button onclick="${onclick}" class="text-${color}-600 hover:underline text-xs">${label}</button>`;
 }
-function closeNewCatalogModal() {
-  document.getElementById('modal-new-catalog').classList.add('hidden');
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('view-' + name).classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'catalogs') loadCatalogs();
+  else if (name === 'targets') loadTargets();
+  else if (name === 'workflows') loadWorkflows();
+  else if (name === 'runs') loadRuns();
+}
+
+// ── Catalogs ─────────────────────────────────────────────────────────────────
+async function loadCatalogs() {
+  try {
+    const items = await api('GET', '/catalogs');
+    const rows = items.map(c => `<tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogDetail('${esc(c.id)}')">
+      ${td(`<span class="font-medium text-gray-900">${esc(c.name)}</span>`)}
+      ${td(`<span class="text-gray-500">${esc(c.description || '—')}</span>`)}
+      ${tdActions(actionLink('Edit', `openCatalogDetail('${esc(c.id)}')`), actionLink('Archive', `archiveCatalogFromList('${esc(c.id)}')`, 'yellow'))}
+    </tr>`);
+    document.getElementById('catalog-list').innerHTML = table(['Name', 'Description', ''], rows);
+  } catch(e) { showToast(e.message, true); }
 }
 
 async function createCatalog() {
   const name = document.getElementById('new-catalog-name').value.trim();
   if (!name) return showToast('Name is required', true);
-  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+  const id = uuid();
   try {
     await sendCommand('catalogs', id, 'CreateCatalog', { id, name });
-    closeNewCatalogModal();
+    closeModal('modal-new-catalog');
     showToast('Catalog created');
     await loadCatalogs();
-    viewCatalog(id);
+    openCatalogDetail(id);
   } catch(e) { showToast(e.message, true); }
 }
 
-async function deleteCatalog(id, name) {
-  if (!confirm(`Delete catalog "${name}"?`)) return;
-  // No delete command in the design — inform the user
-  showToast('Catalog deletion is not supported in this version', true);
-}
-
-function showCatalogTab(tab) {
-  document.querySelectorAll('.catalog-tab-panel').forEach(el => el.classList.add('hidden'));
-  document.getElementById('cat-tab-' + tab).classList.remove('hidden');
-  document.querySelectorAll('.catalog-tab').forEach(btn => {
-    const active = btn.dataset.tab === tab;
-    btn.classList.toggle('border-indigo-600', active);
-    btn.classList.toggle('text-indigo-600', active);
-    btn.classList.toggle('font-medium', active);
-    btn.classList.toggle('border-transparent', !active);
-    btn.classList.toggle('text-gray-500', !active);
-  });
-}
-
-async function viewCatalog(id) {
+async function openCatalogDetail(id) {
   currentCatalogId = id;
+  currentEditingStepId = null;
   try {
-    const state = await api('GET', `/catalogs/${id}`);
-    document.getElementById('catalog-detail-name').textContent = state.name;
-    renderCatalogSteps(state.steps || {});
-    renderCatalogTargets(state.targets || {});
+    const [state, steps, targets] = await Promise.all([
+      api('GET', `/catalogs/${id}`),
+      api('GET', `/catalog-steps?catalogId=${id}`),
+      api('GET', '/targets')
+    ]);
+    currentCatalogState = state;
+    currentCatalogTargets = targets;
+    document.getElementById('catalog-detail-title').textContent = state.name;
+    document.getElementById('catalog-name-input').value = state.name;
+    document.getElementById('catalog-desc-input').value = state.description || '';
+    document.getElementById('catalog-archive-btn').textContent = state.isArchived ? 'Unarchive' : 'Archive';
+    renderCatalogSteps(steps, targets);
+    closeStepForm();
     document.getElementById('catalog-detail').classList.remove('hidden');
-    document.getElementById('catalog-detail').scrollIntoView({ behavior: 'smooth' });
   } catch(e) { showToast(e.message, true); }
 }
 
-function hideCatalogDetail() {
+function closeCatalogDetail() {
   document.getElementById('catalog-detail').classList.add('hidden');
   currentCatalogId = null;
 }
 
-function renderCatalogSteps(steps) {
-  const el = document.getElementById('catalog-steps-list');
-  const entries = Object.entries(steps);
-  if (!entries.length) {
-    el.innerHTML = '<p class="text-gray-400 text-sm">No steps defined yet.</p>';
-    return;
-  }
-  el.innerHTML = entries.map(([name, def]) => `
-    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-      <div>
-        <span class="text-sm font-medium">${esc(name)}</span>
-        <span class="text-xs text-gray-400 ml-2">${esc(def.method)} ${esc(def.target)} ${esc(def.path)}</span>
-      </div>
-      <button onclick="removeCatalogStep('${esc(name)}')"
-        class="text-red-500 text-xs hover:underline ml-4">Remove</button>
-    </div>`).join('');
+async function saveCatalogInfo() {
+  if (!currentCatalogId) return;
+  const name = document.getElementById('catalog-name-input').value.trim();
+  const description = document.getElementById('catalog-desc-input').value.trim();
+  if (!name) return showToast('Name is required', true);
+  try {
+    await sendCommand('catalogs', currentCatalogId, 'UpdateCatalog', { name, description });
+    showToast('Saved');
+    document.getElementById('catalog-detail-title').textContent = name;
+    await loadCatalogs();
+  } catch(e) { showToast(e.message, true); }
 }
 
-async function upsertStep() {
-  if (!currentCatalogId) return;
-  const name = document.getElementById('step-name-input').value.trim();
-  const target = document.getElementById('step-target-input').value.trim();
-  const method = document.getElementById('step-method-input').value;
-  const path = document.getElementById('step-path-input').value.trim();
-  if (!name || !target || !path) return showToast('Name, Target, and Path are required', true);
+async function toggleArchiveCatalog() {
+  if (!currentCatalogId || !currentCatalogState) return;
+  const cmd = currentCatalogState.isArchived ? 'UnarchiveCatalog' : 'ArchiveCatalog';
   try {
-    await sendCommand('catalogs', currentCatalogId, 'UpsertStep', {
-      stepName: name,
-      stepDefinition: { target, method, path }
+    await sendCommand('catalogs', currentCatalogId, cmd, {});
+    showToast(currentCatalogState.isArchived ? 'Unarchived' : 'Archived');
+    await openCatalogDetail(currentCatalogId);
+    await loadCatalogs();
+  } catch(e) { showToast(e.message, true); }
+}
+
+async function archiveCatalogFromList(id) {
+  try {
+    await sendCommand('catalogs', id, 'ArchiveCatalog', {});
+    showToast('Archived');
+    await loadCatalogs();
+    if (currentCatalogId === id) closeCatalogDetail();
+  } catch(e) { showToast(e.message, true); }
+}
+
+function renderCatalogSteps(steps, targets) {
+  const targetMap = Object.fromEntries(targets.map(t => [t.id, t]));
+  const el = document.getElementById('catalog-steps-list');
+  if (!steps.length) {
+    el.innerHTML = '<p class="text-gray-400 text-sm">No steps yet.</p>';
+    return;
+  }
+  el.innerHTML = steps.map(s => {
+    const target = targetMap[s.targetId];
+    const targetLabel = target ? esc(target.name) : `<span class="font-mono text-xs">${esc(s.targetId.slice(0,8))}…</span>`;
+    return `<div class="flex items-start justify-between py-2.5 px-3 border rounded mb-1 bg-gray-50 gap-2">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="font-medium text-sm">${esc(s.stepName)}</span>
+          ${s.isArchived ? archivedBadge() : ''}
+        </div>
+        <div class="text-xs text-gray-400 mt-0.5">${targetLabel} &mdash; <span class="font-mono">${esc(s.method)} ${esc(s.path)}</span></div>
+      </div>
+      <div class="flex gap-2 flex-shrink-0 text-xs pt-0.5">
+        ${actionLink('Edit', `openStepForm('${esc(s.id)}')`)}
+        ${s.isArchived
+          ? actionLink('Unarchive', `unarchiveCatalogStep('${esc(s.id)}')`, 'green')
+          : actionLink('Archive', `archiveCatalogStep('${esc(s.id)}')`, 'yellow')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openStepForm(stepId) {
+  currentEditingStepId = stepId;
+  const formTitle = document.getElementById('step-form-title');
+  const targetSelect = document.getElementById('step-form-target');
+
+  // Populate target dropdown
+  targetSelect.innerHTML = currentCatalogTargets
+    .filter(t => !t.isArchived)
+    .map(t => `<option value="${esc(t.id)}">${esc(t.name)} — ${esc(t.baseUrl)}</option>`)
+    .join('');
+  if (!currentCatalogTargets.filter(t => !t.isArchived).length) {
+    targetSelect.innerHTML = '<option value="">No targets available</option>';
+  }
+
+  if (stepId) {
+    formTitle.textContent = 'Edit Step';
+    const step = await api('GET', `/catalog-steps/${stepId}`);
+    document.getElementById('step-form-id').value = step.id;
+    document.getElementById('step-form-name').value = step.stepName;
+    document.getElementById('step-form-method').value = step.method;
+    document.getElementById('step-form-path').value = step.path;
+    if (step.targetId) targetSelect.value = step.targetId;
+  } else {
+    formTitle.textContent = 'Add Step';
+    document.getElementById('step-form-id').value = '';
+    document.getElementById('step-form-name').value = '';
+    document.getElementById('step-form-method').value = 'GET';
+    document.getElementById('step-form-path').value = '';
+  }
+
+  document.getElementById('step-form').classList.remove('hidden');
+  document.getElementById('step-form-name').focus();
+}
+
+function closeStepForm() {
+  document.getElementById('step-form').classList.add('hidden');
+  currentEditingStepId = null;
+}
+
+async function saveStep() {
+  if (!currentCatalogId) return;
+  const name = document.getElementById('step-form-name').value.trim();
+  const targetId = document.getElementById('step-form-target').value;
+  const method = document.getElementById('step-form-method').value;
+  const path = document.getElementById('step-form-path').value.trim();
+  if (!name || !targetId || !path) return showToast('Name, target and path are required', true);
+
+  const existingId = document.getElementById('step-form-id').value;
+  const id = existingId || uuid();
+  try {
+    await sendCommand('catalog-steps', id, 'UpsertStep', {
+      id, catalogId: currentCatalogId, stepName: name, targetId, method, path
     });
     showToast('Step saved');
-    await viewCatalog(currentCatalogId);
-    await loadCatalogs();
-    ['step-name-input','step-target-input','step-path-input'].forEach(id => document.getElementById(id).value = '');
+    closeStepForm();
+    await openCatalogDetail(currentCatalogId);
   } catch(e) { showToast(e.message, true); }
 }
 
-async function removeCatalogStep(stepName) {
-  if (!currentCatalogId || !confirm(`Remove step "${stepName}"?`)) return;
+async function archiveCatalogStep(id) {
   try {
-    await sendCommand('catalogs', currentCatalogId, 'RemoveStep', { stepName });
-    showToast('Step removed');
-    await viewCatalog(currentCatalogId);
-    await loadCatalogs();
+    await sendCommand('catalog-steps', id, 'ArchiveStep', {});
+    showToast('Step archived');
+    await openCatalogDetail(currentCatalogId);
   } catch(e) { showToast(e.message, true); }
 }
 
-function renderCatalogTargets(targets) {
-  const el = document.getElementById('catalog-targets-list');
-  const entries = Object.entries(targets);
-  if (!entries.length) { el.innerHTML = '<p class="text-gray-400 text-sm">No targets defined yet.</p>'; return; }
-  el.innerHTML = entries.map(([name, def]) => `
-    <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
-      <div class="text-sm">
-        <span class="font-medium">${esc(name)}</span>
-        <span class="text-gray-400 ml-2">${esc(def.baseUrl)}</span>
-      </div>
-      <button onclick="removeCatalogTarget('${esc(name)}')" class="text-red-500 text-xs hover:underline">Remove</button>
-    </div>`).join('');
+async function unarchiveCatalogStep(id) {
+  try {
+    await sendCommand('catalog-steps', id, 'UnarchiveStep', {});
+    showToast('Step unarchived');
+    await openCatalogDetail(currentCatalogId);
+  } catch(e) { showToast(e.message, true); }
 }
 
-async function upsertCatalogTarget() {
-  if (!currentCatalogId) return;
-  const name = document.getElementById('cat-target-name').value.trim();
-  const baseUrl = document.getElementById('cat-target-url').value.trim();
+// ── Targets ──────────────────────────────────────────────────────────────────
+async function loadTargets() {
+  const showArchived = document.getElementById('targets-show-archived')?.checked;
+  try {
+    const items = await api('GET', `/targets${showArchived ? '?showArchived=true' : ''}`);
+    const rows = items.map(t => `<tr class="hover:bg-gray-50 ${t.isArchived ? 'opacity-60' : ''}">
+      ${td(`<span class="font-medium text-gray-900">${esc(t.name)}</span> ${t.isArchived ? archivedBadge() : ''}`)}
+      ${td(`<span class="font-mono text-gray-600 text-xs">${esc(t.baseUrl)}</span>`)}
+      ${td(formatDate(t.createdAt), 'text-gray-400')}
+      ${tdActions(
+        actionLink('Edit', `openEditTargetModal('${esc(t.id)}')`),
+        t.isArchived
+          ? actionLink('Unarchive', `unarchiveTarget('${esc(t.id)}')`, 'green')
+          : actionLink('Archive', `archiveTarget('${esc(t.id)}')`, 'yellow')
+      )}
+    </tr>`);
+    document.getElementById('target-list').innerHTML = table(['Name', 'Base URL', 'Created', ''], rows);
+  } catch(e) { showToast(e.message, true); }
+}
+
+async function saveTarget() {
+  const id = document.getElementById('target-modal-id').value;
+  const name = document.getElementById('target-modal-name').value.trim();
+  const baseUrl = document.getElementById('target-modal-url').value.trim();
   if (!name || !baseUrl) return showToast('Name and URL are required', true);
   try {
-    await sendCommand('catalogs', currentCatalogId, 'UpsertTarget', {
-      name,
-      targetDefinition: { baseUrl, type: 'http' }
-    });
-    showToast('Target saved');
-    document.getElementById('cat-target-name').value = '';
-    document.getElementById('cat-target-url').value = '';
-    await viewCatalog(currentCatalogId);
+    if (id) {
+      await sendCommand('targets', id, 'UpdateTarget', { name, baseUrl });
+      showToast('Target updated');
+    } else {
+      const newId = uuid();
+      await sendCommand('targets', newId, 'CreateTarget', { id: newId, name, baseUrl });
+      showToast('Target created');
+    }
+    closeModal('modal-new-target');
+    await loadTargets();
   } catch(e) { showToast(e.message, true); }
 }
 
-async function removeCatalogTarget(name) {
-  if (!currentCatalogId || !confirm(`Remove target "${name}"?`)) return;
+async function openEditTargetModal(id) {
+  const target = await api('GET', `/targets/${id}`);
+  document.getElementById('target-modal-title').textContent = 'Edit Target';
+  document.getElementById('target-modal-id').value = target.id;
+  document.getElementById('target-modal-name').value = target.name;
+  document.getElementById('target-modal-url').value = target.baseUrl;
+  openModal('modal-new-target');
+}
+
+document.getElementById('modal-new-target').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('modal-new-target');
+});
+
+async function archiveTarget(id) {
   try {
-    await sendCommand('catalogs', currentCatalogId, 'RemoveTarget', { name });
-    showToast('Target removed');
-    await viewCatalog(currentCatalogId);
+    await sendCommand('targets', id, 'ArchiveTarget', {});
+    showToast('Archived');
+    await loadTargets();
   } catch(e) { showToast(e.message, true); }
 }
 
-// ============================================================
-// WORKFLOWS
-// ============================================================
+async function unarchiveTarget(id) {
+  try {
+    await sendCommand('targets', id, 'UnarchiveTarget', {});
+    showToast('Unarchived');
+    await loadTargets();
+  } catch(e) { showToast(e.message, true); }
+}
+
+function openNewTargetModal() {
+  document.getElementById('target-modal-title').textContent = 'New Target';
+  document.getElementById('target-modal-id').value = '';
+  document.getElementById('target-modal-name').value = '';
+  document.getElementById('target-modal-url').value = '';
+  openModal('modal-new-target');
+}
+
+// ── Workflows ────────────────────────────────────────────────────────────────
 async function loadWorkflows() {
+  const showArchived = document.getElementById('workflows-show-archived')?.checked;
   try {
-    const workflows = await api('GET', '/api/workflows');
-    renderWorkflowList(workflows);
+    const items = await api('GET', `/workflows${showArchived ? '?showArchived=true' : ''}`);
+    const rows = items.map(w => `<tr class="hover:bg-gray-50 ${w.isArchived ? 'opacity-60' : ''}">
+      ${td(`<span class="font-medium text-gray-900">${esc(w.name)}</span> ${w.isArchived ? archivedBadge() : ''}`)}
+      ${td(`<span class="text-gray-500">${esc(w.description || '—')}</span>`)}
+      ${tdActions(
+        actionLink('Edit', `openWorkflowDetail('${esc(w.id)}')`),
+        actionLink('Run', `quickRun('${esc(w.id)}')`, 'green')
+      )}
+    </tr>`);
+    document.getElementById('workflow-list').innerHTML = table(['Name', 'Description', ''], rows);
   } catch(e) { showToast(e.message, true); }
-}
-
-function renderWorkflowList(workflows) {
-  const container = document.getElementById('workflow-list-container');
-  if (!workflows.length) {
-    container.innerHTML = '<p class="text-gray-400 text-sm">No workflows yet. Create one to get started.</p>';
-    return;
-  }
-  container.innerHTML = `
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catalogs</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          ${workflows.map(w => {
-            const cats = (() => { try { return JSON.parse(w.catalog_ids || '[]'); } catch { return []; } })();
-            return `
-            <tr class="hover:bg-gray-50 ${w.archived ? 'opacity-60' : ''}">
-              <td class="px-6 py-4 text-sm font-medium text-gray-900">${esc(w.name)}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${cats.length}</td>
-              <td class="px-6 py-4 text-sm">${w.archived ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Archived</span>' : '<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Active</span>'}</td>
-              <td class="px-6 py-4 text-sm text-gray-400">${formatDate(w.created_at)}</td>
-              <td class="px-6 py-4 text-right space-x-2">
-                <button onclick="editWorkflow('${esc(w.id)}')"
-                  class="text-indigo-600 text-sm hover:underline">Edit</button>
-                <button onclick="quickRunWorkflow('${esc(w.id)}')"
-                  class="text-green-600 text-sm hover:underline">Run</button>
-              </td>
-            </tr>`}).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-function openNewWorkflowModal() {
-  document.getElementById('new-workflow-name').value = '';
-  document.getElementById('modal-new-workflow').classList.remove('hidden');
-  setTimeout(() => document.getElementById('new-workflow-name').focus(), 50);
-}
-function closeNewWorkflowModal() {
-  document.getElementById('modal-new-workflow').classList.add('hidden');
 }
 
 async function createWorkflow() {
   const name = document.getElementById('new-workflow-name').value.trim();
   if (!name) return showToast('Name is required', true);
-  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+  const id = uuid();
   try {
     await sendCommand('workflows', id, 'CreateWorkflow', { id, name });
-    closeNewWorkflowModal();
+    closeModal('modal-new-workflow');
     showToast('Workflow created');
     await loadWorkflows();
-    editWorkflow(id);
+    openWorkflowDetail(id);
   } catch(e) { showToast(e.message, true); }
 }
 
-async function editWorkflow(id) {
+async function openWorkflowDetail(id) {
   currentWorkflowId = id;
   try {
-    const state = await api('GET', `/workflows/${id}`);
+    const [state, steps] = await Promise.all([
+      api('GET', `/workflows/${id}`),
+      api('GET', '/catalog-steps')
+    ]);
     currentWorkflowState = state;
+    allCatalogSteps = steps;
     renderWorkflowDetail(state);
     document.getElementById('workflow-detail').classList.remove('hidden');
-    document.getElementById('workflow-detail').scrollIntoView({ behavior: 'smooth' });
     document.getElementById('run-result-panel').classList.add('hidden');
   } catch(e) { showToast(e.message, true); }
 }
 
-function hideWorkflowDetail() {
+function closeWorkflowDetail() {
+  if (runPollTimer) { clearInterval(runPollTimer); runPollTimer = null; }
   document.getElementById('workflow-detail').classList.add('hidden');
   currentWorkflowId = null;
   currentWorkflowState = null;
 }
 
 function renderWorkflowDetail(state) {
-  document.getElementById('workflow-detail-name').textContent = state.name;
-  document.getElementById('workflow-rename-input').value = state.name;
-  const archived = state.isArchived ?? false;
-  document.getElementById('workflow-archived-badge').classList.toggle('hidden', !archived);
-  document.getElementById('archive-workflow-btn').textContent = archived ? 'Unarchive' : 'Archive';
-
+  document.getElementById('workflow-detail-title').textContent = state.name;
+  document.getElementById('workflow-name-input').value = state.name;
+  document.getElementById('workflow-desc-input').value = state.description || '';
+  document.getElementById('workflow-archived-badge').classList.toggle('hidden', !state.isArchived);
+  document.getElementById('workflow-archive-btn').textContent = state.isArchived ? 'Unarchive' : 'Archive';
   renderWorkflowSteps(state.steps || []);
-  renderWorkflowCatalogs(state.catalogIds || []);
   renderWorkflowAssertions(state.assertions || []);
+  showWorkflowTab('steps');
 }
 
 function showWorkflowTab(tab) {
-  document.querySelectorAll('.workflow-tab-panel').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.wf-panel').forEach(el => el.classList.add('hidden'));
   document.getElementById('wf-tab-' + tab).classList.remove('hidden');
-  document.querySelectorAll('.workflow-tab').forEach(btn => {
+  document.querySelectorAll('.wf-tab').forEach(btn => {
     const active = btn.dataset.tab === tab;
     btn.classList.toggle('border-indigo-600', active);
     btn.classList.toggle('text-indigo-600', active);
@@ -675,290 +756,275 @@ function showWorkflowTab(tab) {
 
 function renderWorkflowSteps(steps) {
   const el = document.getElementById('workflow-steps-list');
-  if (!steps.length) { el.innerHTML = '<p class="text-gray-400 text-sm">No steps yet.</p>'; return; }
-  el.innerHTML = steps.map((s, i) => `
-    <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
+  if (!steps.length) {
+    el.innerHTML = '<p class="text-gray-400 text-sm">No steps yet.</p>';
+    return;
+  }
+  const stepMap = Object.fromEntries(allCatalogSteps.map(s => [s.id, s]));
+  const rows = steps.map((s, i) => {
+    const cs = stepMap[s.catalogStepId];
+    const label = cs ? `${esc(cs.stepName)} <span class="text-gray-400 font-normal">${esc(cs.method)} ${esc(cs.path)}</span>` : `<span class="font-mono text-gray-400 text-xs">${esc(s.catalogStepId)}</span>`;
+    return `<div class="flex items-center justify-between py-2 px-3 border rounded mb-1 bg-gray-50">
       <div class="text-sm">
-        <span class="font-medium">${esc(s.step || s.build || '')}</span>
-        ${s.captureAs ? `<span class="text-gray-400 ml-2">→ ${esc(s.captureAs)}</span>` : ''}
+        <span class="text-gray-400 text-xs mr-2">${i + 1}.</span>
+        ${label}
       </div>
-      <div class="flex gap-2">
-        <button onclick="removeWorkflowStep(${i})" class="text-red-500 text-xs hover:underline">Remove</button>
-      </div>
-    </div>`).join('');
+      ${actionLink('Remove', `removeWorkflowStep('${esc(s.id)}')`, 'red')}
+    </div>`;
+  });
+  el.innerHTML = rows.join('');
 }
-
-function renderWorkflowCatalogs(catalogIds) {
-  const el = document.getElementById('workflow-catalogs-list');
-  if (!catalogIds.length) { el.innerHTML = '<p class="text-gray-400 text-sm">No catalogs linked.</p>'; return; }
-  el.innerHTML = catalogIds.map(id => `
-    <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
-      <span class="text-sm font-mono">${esc(id)}</span>
-      <button onclick="removeWorkflowCatalog('${esc(id)}')" class="text-red-500 text-xs hover:underline">Remove</button>
-    </div>`).join('');
-}
-
 
 function renderWorkflowAssertions(assertions) {
   const el = document.getElementById('workflow-assertions-list');
-  if (!assertions.length) { el.innerHTML = '<p class="text-gray-400 text-sm">No assertions.</p>'; return; }
-  el.innerHTML = assertions.map((a, i) => {
-    let desc = '';
-    if (a.equal) desc = `equal: ${a.equal.join(' == ')}`;
-    else if (a.notEqual) desc = `notEqual: ${a.notEqual.join(' != ')}`;
-    else if (a.single) desc = `single: ${a.single}`;
-    else if (a.empty) desc = `empty: ${a.empty}`;
+  if (!assertions.length) {
+    el.innerHTML = '<p class="text-gray-400 text-sm mb-2">No assertions yet.</p>';
+    return;
+  }
+  el.innerHTML = assertions.map(a => {
+    let desc;
+    if (a.equal)    desc = `equal: ${a.equal[0]} == ${a.equal[1]}`;
+    else if (a.notEqual) desc = `notEqual: ${a.notEqual[0]} != ${a.notEqual[1]}`;
+    else if (a.count)    desc = `count: ${a.count[0]} == ${a.count[1]}`;
+    else if (a.empty)    desc = `empty: ${a.empty}`;
     else if (a.notEmpty) desc = `notEmpty: ${a.notEmpty}`;
-    return `
-      <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
-        <span class="text-sm font-mono">${esc(desc)}</span>
-        <button onclick="removeWorkflowAssertion(${i})" class="text-red-500 text-xs hover:underline">Remove</button>
-      </div>`;
+    else desc = JSON.stringify(a);
+    return `<div class="py-2 px-3 border rounded mb-1 bg-gray-50 text-sm font-mono">${esc(desc)}</div>`;
   }).join('');
 }
 
-async function renameWorkflow() {
+async function saveWorkflowInfo() {
   if (!currentWorkflowId) return;
-  const name = document.getElementById('workflow-rename-input').value.trim();
+  const name = document.getElementById('workflow-name-input').value.trim();
+  const description = document.getElementById('workflow-desc-input').value.trim();
   if (!name) return showToast('Name is required', true);
   try {
-    await sendCommand('workflows', currentWorkflowId, 'RenameWorkflow', { name });
-    showToast('Workflow renamed');
-    await editWorkflow(currentWorkflowId);
+    await Promise.all([
+      sendCommand('workflows', currentWorkflowId, 'RenameWorkflow', { name }),
+      sendCommand('workflows', currentWorkflowId, 'UpdateDescription', { description })
+    ]);
+    showToast('Saved');
+    document.getElementById('workflow-detail-title').textContent = name;
+    currentWorkflowState = { ...currentWorkflowState, name, description };
     await loadWorkflows();
-  } catch(e) { showToast(e.message, true); }
-}
-
-async function addWorkflowStep() {
-  if (!currentWorkflowId) return;
-  const step = document.getElementById('wf-step-name').value.trim();
-  const captureAs = document.getElementById('wf-step-capture').value.trim() || undefined;
-  if (!step) return showToast('Step name is required', true);
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'AddStep', {
-      stepInvocation: { step, captureAs: captureAs ?? null }
-    });
-    showToast('Step added');
-    document.getElementById('wf-step-name').value = '';
-    document.getElementById('wf-step-capture').value = '';
-    await editWorkflow(currentWorkflowId);
-  } catch(e) { showToast(e.message, true); }
-}
-
-async function removeWorkflowStep(index) {
-  if (!currentWorkflowId) return;
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'RemoveStep', { index });
-    showToast('Step removed');
-    await editWorkflow(currentWorkflowId);
-  } catch(e) { showToast(e.message, true); }
-}
-
-async function addWorkflowCatalog() {
-  if (!currentWorkflowId) return;
-  const catalogId = document.getElementById('wf-catalog-id').value.trim();
-  if (!catalogId) return showToast('Catalog ID is required', true);
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'AddCatalog', { catalogId });
-    showToast('Catalog added');
-    document.getElementById('wf-catalog-id').value = '';
-    await editWorkflow(currentWorkflowId);
-  } catch(e) { showToast(e.message, true); }
-}
-
-async function removeWorkflowCatalog(catalogId) {
-  if (!currentWorkflowId) return;
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'RemoveCatalog', { catalogId });
-    showToast('Catalog removed');
-    await editWorkflow(currentWorkflowId);
-  } catch(e) { showToast(e.message, true); }
-}
-
-
-async function addWorkflowAssertion() {
-  if (!currentWorkflowId) return;
-  const type = document.getElementById('wf-assertion-type').value;
-  const val1 = document.getElementById('wf-assertion-val1').value.trim();
-  const val2 = document.getElementById('wf-assertion-val2').value.trim();
-  if (!val1) return showToast('Value 1 is required', true);
-
-  let assertionDefinition = {};
-  if (type === 'equal' || type === 'notEqual') {
-    if (!val2) return showToast('Value 2 is required for equal/notEqual', true);
-    assertionDefinition[type] = [val1, val2];
-  } else {
-    assertionDefinition[type] = val1;
-  }
-
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'AddAssertion', { assertionDefinition });
-    showToast('Assertion added');
-    document.getElementById('wf-assertion-val1').value = '';
-    document.getElementById('wf-assertion-val2').value = '';
-    await editWorkflow(currentWorkflowId);
-  } catch(e) { showToast(e.message, true); }
-}
-
-async function removeWorkflowAssertion(index) {
-  if (!currentWorkflowId) return;
-  try {
-    await sendCommand('workflows', currentWorkflowId, 'RemoveAssertion', { index });
-    showToast('Assertion removed');
-    await editWorkflow(currentWorkflowId);
   } catch(e) { showToast(e.message, true); }
 }
 
 async function toggleArchiveWorkflow() {
   if (!currentWorkflowId || !currentWorkflowState) return;
-  const isArchived = currentWorkflowState.isArchived ?? false;
-  const cmd = isArchived ? 'UnarchiveWorkflow' : 'ArchiveWorkflow';
+  const cmd = currentWorkflowState.isArchived ? 'UnarchiveWorkflow' : 'ArchiveWorkflow';
   try {
     await sendCommand('workflows', currentWorkflowId, cmd, {});
-    showToast(isArchived ? 'Workflow unarchived' : 'Workflow archived');
-    await editWorkflow(currentWorkflowId);
+    showToast(currentWorkflowState.isArchived ? 'Unarchived' : 'Archived');
+    await openWorkflowDetail(currentWorkflowId);
     await loadWorkflows();
   } catch(e) { showToast(e.message, true); }
 }
 
-async function runWorkflow() {
-  if (!currentWorkflowId) return;
-  const panel = document.getElementById('run-result-panel');
-  const badge = document.getElementById('run-result-badge');
-  const summary = document.getElementById('run-result-summary');
-  const jsonEl = document.getElementById('run-result-json');
+// Step picker modal
+function openAddStepModal() {
+  document.getElementById('step-filter').value = '';
+  renderStepPicker('');
+  openModal('modal-add-step');
+}
 
-  badge.textContent = 'Running...';
-  badge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700';
-  summary.textContent = '';
-  jsonEl.textContent = '';
-  panel.classList.remove('hidden');
-
-  try {
-    const res = await fetch(`/api/workflows/${currentWorkflowId}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    const data = await res.json();
-    const passed = data.result?.passed ?? false;
-    badge.textContent = passed ? 'PASS' : 'FAIL';
-    badge.className = `text-xs font-semibold px-2 py-0.5 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-    const errors = data.result?.assertionErrors ?? [];
-    summary.textContent = errors.length ? errors.join('; ') : (passed ? 'All assertions passed' : 'Workflow failed');
-    jsonEl.textContent = JSON.stringify(data.result, null, 2);
-    await loadRuns();
-  } catch(e) {
-    badge.textContent = 'ERROR';
-    badge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800';
-    summary.textContent = e.message;
+function renderStepPicker(filter) {
+  const q = filter.toLowerCase();
+  const filtered = allCatalogSteps.filter(s =>
+    !s.isArchived && (!q || s.stepName.toLowerCase().includes(q) || s.path.toLowerCase().includes(q))
+  );
+  const el = document.getElementById('step-picker-list');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="px-4 py-3 text-sm text-gray-400">No steps found.</div>';
+    return;
   }
+  el.innerHTML = filtered.map(s => `
+    <button onclick="appendWorkflowStep('${esc(s.id)}', '${esc(s.catalogId)}')"
+      class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm transition-colors">
+      <span class="font-medium text-gray-900">${esc(s.stepName)}</span>
+      <span class="text-gray-400 ml-2 text-xs font-mono">${esc(s.method)} ${esc(s.path)}</span>
+    </button>`).join('');
 }
 
-async function quickRunWorkflow(id) {
-  await editWorkflow(id);
-  await runWorkflow();
-}
+function filterStepPicker(value) { renderStepPicker(value); }
 
-// ============================================================
-// RUNS
-// ============================================================
-async function loadRuns() {
+async function appendWorkflowStep(catalogStepId, catalogId) {
+  if (!currentWorkflowId) return;
+  closeModal('modal-add-step');
   try {
-    const runs = await api('GET', '/api/runs');
-    renderRunsList(runs);
+    await sendCommand('workflows', currentWorkflowId, 'AppendStep', {
+      id: uuid(), catalogStepId, catalogId
+    });
+    showToast('Step added');
+    await openWorkflowDetail(currentWorkflowId);
   } catch(e) { showToast(e.message, true); }
 }
 
-function renderRunsList(runs) {
-  const container = document.getElementById('runs-list-container');
-  if (!runs.length) {
-    container.innerHTML = '<p class="text-gray-400 text-sm">No test runs yet.</p>';
+async function removeWorkflowStep(stepId) {
+  if (!currentWorkflowId) return;
+  try {
+    await sendCommand('workflows', currentWorkflowId, 'RemoveStep', { id: stepId });
+    showToast('Step removed');
+    await openWorkflowDetail(currentWorkflowId);
+  } catch(e) { showToast(e.message, true); }
+}
+
+function updateAssertionForm() {
+  const type = document.getElementById('assertion-type').value;
+  const needsTwo = ['equal', 'notEqual', 'count'].includes(type);
+  document.getElementById('assertion-val2-row').style.display = needsTwo ? '' : 'none';
+}
+
+async function addAssertion() {
+  if (!currentWorkflowId) return;
+  const type = document.getElementById('assertion-type').value;
+  const val1 = document.getElementById('assertion-val1').value.trim();
+  const val2 = document.getElementById('assertion-val2').value.trim();
+  if (!val1) return showToast('Value is required', true);
+
+  let assertion;
+  if (['equal', 'notEqual', 'count'].includes(type)) {
+    if (!val2) return showToast('Second value is required', true);
+    assertion = { [type]: [val1, val2] };
+  } else {
+    assertion = { [type]: val1 };
+  }
+
+  try {
+    await sendCommand('workflows', currentWorkflowId, 'AddAssertion', { assertion });
+    showToast('Assertion added');
+    document.getElementById('assertion-val1').value = '';
+    document.getElementById('assertion-val2').value = '';
+    await openWorkflowDetail(currentWorkflowId);
+  } catch(e) { showToast(e.message, true); }
+}
+
+// Run workflow
+async function triggerRun() {
+  if (!currentWorkflowId) return;
+  const panel = document.getElementById('run-result-panel');
+  const badge = document.getElementById('run-result-badge');
+  const msg = document.getElementById('run-result-msg');
+  const json = document.getElementById('run-result-json');
+
+  badge.textContent = 'Running…';
+  badge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700';
+  msg.textContent = '';
+  json.textContent = '';
+  json.classList.add('hidden');
+  panel.classList.remove('hidden');
+
+  if (runPollTimer) { clearInterval(runPollTimer); runPollTimer = null; }
+
+  const runId = uuid();
+  try {
+    await api('POST', `/api/workflows/${currentWorkflowId}/run`, { runId });
+  } catch(e) {
+    badge.textContent = 'ERROR';
+    badge.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800';
+    msg.textContent = e.message;
     return;
   }
-  container.innerHTML = `
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Workflow</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Started</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          ${runs.map(r => `
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm font-medium text-gray-900">${esc(r.workflow_name)}</td>
-              <td class="px-6 py-4 text-sm">${badge(r.passed)}</td>
-              <td class="px-6 py-4 text-sm text-gray-400">${formatDate(r.started_at)}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${r.duration_ms}ms</td>
-              <td class="px-6 py-4 text-right">
-                <button onclick="viewRun('${esc(r.id)}')"
-                  class="text-indigo-600 text-sm hover:underline">View</button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+
+  let polls = 0;
+  runPollTimer = setInterval(async () => {
+    polls++;
+    if (polls > 120) { clearInterval(runPollTimer); runPollTimer = null; msg.textContent = 'Timed out waiting for result.'; return; }
+    try {
+      const run = await api('GET', `/runs/${runId}`);
+      if (run.status === 'completed' || run.status === 'failed') {
+        clearInterval(runPollTimer); runPollTimer = null;
+        const passed = run.passed;
+        badge.textContent = passed ? 'PASS' : 'FAIL';
+        badge.className = `text-xs font-semibold px-2 py-0.5 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+        const result = run.result;
+        const errors = result?.assertionErrors ?? [];
+        msg.textContent = errors.length ? errors.join('; ') : (passed ? 'All assertions passed.' : (run.error || 'Run failed.'));
+        if (result) { json.textContent = JSON.stringify(result, null, 2); json.classList.remove('hidden'); }
+        loadRuns();
+      }
+    } catch {}
+  }, 500);
+}
+
+async function quickRun(id) {
+  await openWorkflowDetail(id);
+  triggerRun();
+}
+
+// ── Runs ─────────────────────────────────────────────────────────────────────
+async function loadRuns() {
+  try {
+    const items = await api('GET', '/runs');
+    const rows = items.map(r => `<tr class="hover:bg-gray-50">
+      ${td(`<span class="font-medium text-gray-900">${esc(r.workflowName || '—')}</span>`)}
+      ${td(passBadge(r.passed))}
+      ${td(formatDate(r.startedAt), 'text-gray-400')}
+      ${td(formatDuration(r.durationMs), 'text-gray-500')}
+      ${tdActions(actionLink('View', `viewRun('${esc(r.id)}')`))}
+    </tr>`);
+    document.getElementById('runs-list').innerHTML = table(['Workflow', 'Result', 'Started', 'Duration', ''], rows);
+  } catch(e) { showToast(e.message, true); }
 }
 
 async function viewRun(id) {
   try {
-    const state = await api('GET', `/runs/${id}`);
-    const content = document.getElementById('run-detail-content');
-    const result = JSON.parse(state.resultJson || '{}');
-    content.innerHTML = `
-      <div class="mb-3 flex items-center gap-3">
-        ${badge(state.passed)}
-        <span class="text-sm text-gray-600">${esc(state.workflowName)}</span>
-        <span class="text-sm text-gray-400">${formatDate(state.startedAt)} — ${state.durationMs}ms</span>
-      </div>
-      ${result.assertionErrors?.length ? `
-        <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          <p class="font-medium mb-1">Assertion Errors:</p>
-          <ul class="list-disc list-inside space-y-1">
-            ${result.assertionErrors.map(e => `<li>${esc(e)}</li>`).join('')}
-          </ul>
-        </div>` : ''}
-      ${result.steps?.length ? `
-        <div class="mb-3">
-          <p class="text-sm font-medium text-gray-700 mb-2">Steps:</p>
-          <div class="space-y-2">
-            ${result.steps.map(s => `
-              <div class="border rounded p-2 bg-gray-50">
-                <p class="text-xs font-medium text-gray-600">${esc(s.stepName)}</p>
-                <pre class="text-xs text-gray-500 mt-1 overflow-auto max-h-32 whitespace-pre-wrap">${esc(JSON.stringify(s.response, null, 2))}</pre>
-              </div>`).join('')}
+    const run = await api('GET', `/runs/${id}`);
+    const result = run.result ?? {};
+    const steps = result.steps ?? [];
+    const errors = result.assertionErrors ?? [];
+
+    let html = `<div class="flex items-center gap-3 mb-4">
+      ${passBadge(run.passed)}
+      <span class="text-sm text-gray-500">${formatDate(run.triggeredAt)} &mdash; ${formatDuration(run.durationMs)}</span>
+    </div>`;
+
+    if (errors.length) {
+      html += `<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <p class="font-medium mb-1">Assertion errors:</p>
+        <ul class="list-disc list-inside space-y-0.5">${errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>
+      </div>`;
+    }
+
+    if (run.error) {
+      html += `<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <p class="font-medium">Error:</p><p>${esc(run.error)}</p>
+      </div>`;
+    }
+
+    if (steps.length) {
+      html += `<div><p class="text-sm font-medium text-gray-700 mb-2">Steps (${steps.length})</p><div class="space-y-1">`;
+      html += steps.map((s, i) => `
+        <details class="border rounded bg-white">
+          <summary class="px-3 py-2 cursor-pointer text-sm flex items-center gap-2 list-none">
+            <span class="text-gray-400 text-xs">${i + 1}.</span>
+            <span class="font-medium">${esc(s.stepName ?? s.step ?? '')}</span>
+            ${s.passed != null ? passBadge(s.passed) : ''}
+          </summary>
+          <div class="px-3 pb-3 pt-1">
+            <pre class="text-xs bg-gray-50 rounded p-2 overflow-auto max-h-48 whitespace-pre-wrap">${esc(JSON.stringify(s.response ?? s, null, 2))}</pre>
           </div>
-        </div>` : ''}`;
+        </details>`).join('');
+      html += '</div></div>';
+    }
+
+    document.getElementById('run-detail-content').innerHTML = html;
     document.getElementById('run-detail').classList.remove('hidden');
-    document.getElementById('run-detail').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('run-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch(e) { showToast(e.message, true); }
 }
 
-function hideRunDetail() {
+function closeRunDetail() {
   document.getElementById('run-detail').classList.add('hidden');
 }
 
-// ============================================================
-// XSS escape helper
-// ============================================================
-function esc(str) {
-  if (str == null) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// ── Init ─────────────────────────────────────────────────────────────────────
+// Wire up the New Target button to reset modal state
+document.querySelector('#nav-targets')?.addEventListener('click', () => {});
 
-// ============================================================
-// Init
-// ============================================================
+// Initialize assertion form visibility
+updateAssertionForm();
+
 showView('catalogs');
 </script>
 </body>

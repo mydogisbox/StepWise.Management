@@ -1,0 +1,21 @@
+{
+  "name": "Example_07_OutOfStock_AddToCartReturns422",
+  "steps": [
+    { "step": "adminCreateUser" },
+    {
+      "step": "adminCreateProduct",
+      "with": {
+        "stock": { "static": 0 }
+      }
+    },
+    { "step": "login" },
+    {
+      "step": "addToCart",
+      "captureFullResponseAs": "cartError"
+    }
+  ],
+  "assertions": [
+    { "equal": ["$cartError.status", "422"] },
+    { "notEmpty": "$cartError.body.error" }
+  ]
+}

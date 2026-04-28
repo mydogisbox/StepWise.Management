@@ -1,0 +1,22 @@
+{
+  "name": "Example_04_FilterInStock_ExcludesOutOfStockProducts",
+  "steps": [
+    {
+      "step": "adminCreateProduct",
+      "with": {
+        "category": { "static": "test-oos-only-abc" },
+        "stock": { "static": 0 }
+      }
+    },
+    {
+      "step": "listProducts",
+      "query": {
+        "category": { "static": "test-oos-only-abc" },
+        "inStock": { "static": "true" }
+      }
+    }
+  ],
+  "assertions": [
+    { "empty": "$listProducts" }
+  ]
+}

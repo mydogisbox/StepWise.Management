@@ -1,0 +1,16 @@
+{
+  "name": "Example_10_ValidateInvalidVoucher_Returns422",
+  "steps": [
+    {
+      "step": "validateVoucher",
+      "captureFullResponseAs": "result",
+      "with": {
+        "code": { "static": "BOGUS-CODE-XYZ-NOPE" }
+      }
+    }
+  ],
+  "assertions": [
+    { "equal": ["$result.status", "422"] },
+    { "notEmpty": "$result.body.error" }
+  ]
+}

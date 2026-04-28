@@ -19,16 +19,11 @@ public static class WorkflowRunReactions
                 new { type = nameof(RunTriggered), payload = outboxPayload },
                 tx);
 
-            var workflowName = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT name FROM workflow_summaries WHERE id = @id",
-                new { id = e.WorkflowId },
-                tx) ?? "";
-
             await conn.ExecuteAsync(@"
-                INSERT INTO test_run_summaries (id, workflow_id, workflow_name, started_at)
-                VALUES (@id, @workflowId, @workflowName, @startedAt)
+                INSERT INTO test_run_summaries (id, workflow_id, started_at)
+                VALUES (@id, @workflowId, @startedAt)
                 ON CONFLICT (id) DO NOTHING",
-                new { id = e.Id, workflowId = e.WorkflowId, workflowName, startedAt = e.TriggeredAt },
+                new { id = e.Id, workflowId = e.WorkflowId, startedAt = e.TriggeredAt },
                 tx);
         }),
 

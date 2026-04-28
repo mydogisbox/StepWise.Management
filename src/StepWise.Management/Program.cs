@@ -107,12 +107,12 @@ app.MapGet("/targets", async (bool showArchived = false) =>
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
     cmd.CommandText = showArchived
-        ? "SELECT id, name, base_url, is_archived FROM target_summaries"
-        : "SELECT id, name, base_url, is_archived FROM target_summaries WHERE is_archived = false";
+        ? "SELECT id, name, base_url, is_archived, created_at FROM target_summaries ORDER BY created_at"
+        : "SELECT id, name, base_url, is_archived, created_at FROM target_summaries WHERE is_archived = false ORDER BY created_at";
     var results = new List<object>();
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
-        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), baseUrl = reader.GetString(2), isArchived = reader.GetBoolean(3) });
+        results.Add(new { id = reader.GetString(0), name = reader.GetString(1), baseUrl = reader.GetString(2), isArchived = reader.GetBoolean(3), createdAt = reader.GetFieldValue<DateTimeOffset>(4) });
     return Results.Ok(results);
 });
 

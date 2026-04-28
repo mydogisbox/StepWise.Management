@@ -87,11 +87,11 @@ List endpoints use `NpgsqlCommand` with positional `$1`, `$2` parameters and `Db
 ### `test_run_summaries` reactions
 
 Three reactions maintain this table across the run lifecycle:
-- `RunTriggered` — INSERTs the row; looks up `workflow_name` from `workflow_summaries` using `e.WorkflowId`. `passed` and `duration_ms` are left NULL until the run finishes.
+- `RunTriggered` — INSERTs the row with `workflow_id` and `started_at`; `passed` and `duration_ms` are left NULL until the run finishes.
 - `RunCompleted` — UPDATEs `passed` and `duration_ms`
 - `RunFailed` — UPDATEs `passed = false` and `duration_ms`
 
-`passed` and `duration_ms` are nullable columns to support this two-phase write.
+`passed` and `duration_ms` are nullable columns to support this two-phase write. `workflow_name` is not stored — `GET /runs` joins `workflow_summaries` at query time so names stay current.
 
 ### Workflow execution
 
@@ -101,22 +101,26 @@ Three reactions maintain this table across the run lifecycle:
 
 ## Integration tests
 
-Tests live in `tests/StepWise.Management.Tests/WorkflowTests/`. They use `StepWise.Json.JsonWorkflowTestBase` with a declarative JSON format.
+Tests live in `tests/StepWise.Management.Tests/WorkflowTests/`. They use `Walkthrough.Json.JsonWorkflowTestBase`.
+
+**For the full JSON workflow format** — step definitions, field value types (`static`, `from`, `generated`, `template`), assertion types, path syntax, `poll`, `captureAs`, `headers`, per-invocation overrides, etc. — read `../Walkthrough/CLAUDE.md`. Everything below is specific to this project.
 
 ### File layout
 
 ```
 WorkflowTests/
-  targets.json                  ← { "management": { "baseUrl": "http://localhost:5000" } }
-  setup-catalog-with-step.workflow.json   ← shared setup, embedded by reference
-  *.workflow.json               ← one file per test scenario
+  targets.json                         ← target definitions (management + example APIs)
+  setup-catalog-with-step.workflow.json ← shared setup, embedded via `workflow` step
+  *.workflow.json                       ← one file per test scenario
   Requests/
-    management.requests.json    ← all step definitions
+    management.requests.json            ← management API step definitions
+    example.requests.json               ← Example API step definitions
 ```
 
-### Step definition format
+### Management-specific step conventions
 
-**Build steps** (accumulate command items). `type` and `payload` live inside `defaults`. Creation commands always include `"id": { "generated": "guid" }` in their payload so downstream steps can reference the ID without `captureRequestAs`:
+**Build steps** accumulate `CommandBatch` items. `type` and `payload` are always nested inside `defaults`. Creation commands include `"id": { "generated": "guid" }` in the payload so downstream steps can reference it:
+
 ```json
 "createTarget": {
   "accumulateAs": "targetItems",
@@ -131,119 +135,43 @@ WorkflowTests/
 }
 ```
 
-**HTTP steps** — use `pathParams` for path placeholders, `query` for query-string fields, and `defaults` for the JSON body. `postXCommands.aggregateId` derives from `createX.payload.id`; GET steps reference the same source directly:
-```json
-"postTargetCommands": {
-  "target": "management",
-  "method": "POST",
-  "path": "/targets/commands",
-  "defaults": {
-    "aggregateId": { "from": "createTarget.payload.id" },
-    "commands": { "from": "targetItems" }
-  }
-},
-"getTarget": {
-  "target": "management",
-  "method": "GET",
-  "path": "/targets/{aggregateId}",
-  "pathParams": {
-    "aggregateId": { "from": "createTarget.payload.id" }
-  }
-},
-"listCatalogSteps": {
-  "target": "management",
-  "method": "GET",
-  "path": "/catalog-steps",
-  "query": {
-    "catalogId": { "from": "createCatalog.payload.id" }
-  }
-}
-```
+Build step `with` overrides use the `payload` wrapper to deep-merge inside the payload object:
 
-### Workflow file format
-
-Build step `with` overrides use the payload wrapper to deep-merge inside the `payload` object:
 ```json
 {
-  "name": "Catalog_01_CreateTarget",
-  "steps": [
-    {
-      "build": "createTarget",
-      "with": {
-        "payload": { "static": {
-          "name": { "static": "my-target" },
-          "baseUrl": { "static": "http://localhost:5000" }
-        }}
-      }
-    },
-    { "step": "postTargetCommands" },
-    { "step": "getTarget" }
-  ],
-  "assertions": [
-    { "equal": ["$getTarget.name", "my-target"] },
-    { "equal": ["$getTarget.baseUrl", "http://localhost:5000"] }
-  ]
+  "build": "createTarget",
+  "with": {
+    "payload": { "static": {
+      "name": { "static": "my-target" },
+      "baseUrl": { "static": "http://localhost:5000" }
+    }}
+  }
 }
 ```
 
-`StepInvocation` also supports `pathParams` and `query` for per-invocation overrides of path/query params.
-
-Supported assertion types:
-- `{ "equal": ["$step.field", "literal"] }` — strict equality; left side uses `$` sigil, right side is a literal string
-- `{ "count": ["$stepName", "N"] }` — array length equals N
-- `{ "empty": "$stepName" }` — array is empty
-- `{ "notEmpty": "$stepName" }` — array is non-empty
-
-Path expressions (left side of `equal`/`notEqual`, and `count`/`empty`/`notEmpty` values) must start with `$`. Bare strings without `$` are treated as literals.
-
-### Key test rules (from `Plans/rules.md` and `Plans/philosophy.md`)
+### Key test rules
 
 - **Never hardcode IDs or names in defaults.** Use `{ "generated": "guid" }` so tests are isolated by construction.
-- **Assert only against hard-coded literal values in `with` blocks.** Never assert against defaults, generated values, or captured values — these aren't known at the time the assertion is written. If a test needs to assert a field value, specify it explicitly in a `with` block and assert that literal.
+- **Assert only against hard-coded literal values in `with` blocks.** Never assert against defaults, generated values, or captured values — these aren't known at assertion-write time.
 - **Assert on GET responses, not command responses.** Command steps (`POST /*/commands`) are fire-and-forget. Assertions reference `$getTarget.baseUrl`, not request captures.
 - **Foreign key assertions use list responses.** To assert `$getCatalogStep.targetId` is correct, compare against `$listTargets[?name=createTarget.payload.name].id`, not `$getTarget.id`.
 - **List step immediately after post.** Place `listTargets` right after `postTargetCommands`, before any dependent builds.
 - **Shared workflows carry no assertions.** `SetupCatalogWithStep` only establishes state; the calling workflow owns all assertions.
 - **Override only what the test cares about.** Defaults encode correct usage; tests specify only the values that distinguish the scenario.
 
-### ID access and `captureRequestAs`
+### `captureRequestAs`
 
-Creation build steps generate their own `id` in the payload (`"id": { "generated": "guid" }`). `postXCommands.aggregateId` is set to `{ "from": "createX.payload.id" }`, and GET step `pathParams` reference the same source. This means `captureRequestAs` is **not needed** for normal create-then-get flows.
+Creation build steps generate their own `id` in the payload, so `captureRequestAs` is not needed for normal create-then-get flows. Use it only when you need to re-identify an existing aggregate across step invocations — for example, a second `upsertStep` targeting the same `CatalogStep` aggregate as the first.
 
-Use `captureRequestAs` only when you need to re-identify an aggregate that was created in a prior step — for example, a second `upsertStep` that must target the same `CatalogStep` aggregate as the first:
+### `captureFullResponseAs` ⚠️ not in Walkthrough CLAUDE.md
 
-```json
-{ "step": "postCatalogStepCommands", "captureRequestAs": "catalogStepReq" }
-```
-
-Then `catalogStepReq.aggregateId` lets the next build step pass `"id": { "from": "catalogStepReq.aggregateId" }` to update the same aggregate. If you don't need to re-identify an existing aggregate, omit `captureRequestAs`.
-
-### Capturing error responses with `captureFullResponseAs`
-
-By default, any non-2xx response throws and fails the workflow. Use `captureFullResponseAs` to opt into capturing the full response — status code and body — without throwing. The captured value is `{ "status": int, "body": ... }`.
+By default, any non-2xx response throws. Use `captureFullResponseAs` to capture the full response without throwing. The captured value is `{ "status": int, "body": ... }`.
 
 ```json
 { "step": "postCatalogStepCommands", "captureFullResponseAs": "errorResponse" }
 ```
 
-Assertions reference `$errorResponse.status` and `$errorResponse.body.*`:
-
-```json
-{ "equal": ["$errorResponse.status", "422"] },
-{ "notEmpty": "$errorResponse.body.error" }
-```
-
-Works the same way for successful responses when you need to assert on the status code:
-
-```json
-{ "step": "postCatalogStepCommands", "captureFullResponseAs": "result" }
-```
-```json
-{ "equal": ["$result.status", "200"] },
-{ "notEmpty": "$result.body" }
-```
-
-`captureFullResponseAs` and `captureRequestAs` are independent and can be combined on the same invocation.
+Assertions reference `$errorResponse.status` and `$errorResponse.body.*`. This feature is used in existing management tests and works, but it does **not appear in `../Walkthrough/CLAUDE.md`** — its support in the library is undocumented. `captureFullResponseAs` and `captureRequestAs` can be combined on the same invocation.
 
 ### Domain event `Id` convention
 
@@ -267,10 +195,16 @@ Omitting either cast causes a Npgsql type mismatch at runtime.
 
 ## Planned vs implemented
 
-The `PLAN.md` and `Plans/` directory describe the intended final architecture. The current implementation diverges in a few areas:
+The `PLAN.md` and `Plans/` directory describe the intended final architecture. The following gaps remain:
 
 - **`AddAssertion` validation**: plan requires validating that all step names referenced in an assertion exist in the workflow's current steps. Currently the domain stores any assertion without validation.
-- **`TestRunAggregate`**: the plan has an async execution model (`StartRun` → background worker → `RecordStepResult` → `CompleteRun`). The current implementation uses a synchronous `POST /api/workflows/{id}/run` endpoint that always returns HTTP 200.
-- **Execution aggregate**: the plan has a separate `executions` aggregate; current code uses `runs`.
+- **`TestRunAggregate` command model**: the plan calls for `StartRun` → `RecordStepResult` (one per step) → `CompleteRun` with a `Running` intermediate status and `List<StepRunResult>` on state. The current model uses `TriggerRun` → `RecordResult`/`RecordFailure`, recording the full run result as a single JSON blob with no per-step entries.
+- **Execution API**: plan says clients call `POST /runs/commands` with `StartRun` directly. Current code still has a `POST /api/workflows/{id}/run` wrapper endpoint.
+
+### Settled design decisions (no longer open)
+
+- **5-aggregate design is intentional**: Target, Catalog, CatalogStep, Workflow, and TestRun are separate aggregates. PLAN.md's earlier description of embedding steps/targets inside `CatalogAggregate` is superseded.
+- **Async execution is implemented**: `POST /api/workflows/{id}/run` dispatches `TriggerRun`, an outbox entry is created, and `WorkflowExecutionService` processes it asynchronously. Callers poll `GET /runs/{id}` for the result.
+- **`runs` stream prefix**: the plan referenced a separate `executions` aggregate; `runs` is the implemented and correct name.
 
 When implementing new features, follow `PLAN.md` as the authoritative architecture doc.

@@ -1,0 +1,17 @@
+{
+  "name": "Example_05_PurchaseFlow_OrderCreatedPending",
+  "steps": [
+    { "step": "adminCreateUser" },
+    { "step": "adminCreateProduct" },
+    { "step": "login" },
+    { "step": "addToCart" },
+    { "step": "getCart" },
+    { "step": "placeOrder" },
+    { "step": "getOrder" }
+  ],
+  "assertions": [
+    { "notEmpty": "$getCart.items" },
+    { "equal": ["$placeOrder.status", "pending"] },
+    { "equal": ["$getOrder.status", "pending"] }
+  ]
+}

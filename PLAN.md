@@ -81,94 +81,94 @@ Both paths keep their existing captures semantics — the final successful respo
 
 ---
 
-## Domain Model Changes
+## Domain Model
 
-### CatalogAggregate
+### Settled: 5-aggregate design
 
-**State:**
+Targets and catalog steps are separate aggregates — they are **not** embedded inside `CatalogAggregate`.
+
+| Aggregate | Stream prefix | Commands endpoint |
+|-----------|--------------|------------------|
+| Target | `targets/` | `POST /targets/commands` |
+| Catalog | `catalogs/` | `POST /catalogs/commands` |
+| CatalogStep | `catalog-steps/` | `POST /catalog-steps/commands` |
+| Workflow | `workflows/` | `POST /workflows/commands` |
+| TestRun | `runs/` | `POST /runs/commands` |
+
+### CatalogAggregate (current)
+
 ```csharp
-public record CatalogState(
-    string Id,
-    string Name,
-    Dictionary<string, CatalogStep> Steps,   // was Dictionary<string, StepDefinition>
-    Dictionary<string, TargetDefinition> Targets);
-
-public record CatalogStep(StepDefinition Definition, bool IsArchived = false);
+public record CatalogState(string Id, string Name, bool IsArchived, string Description = "");
 ```
 
-**New commands/events:**
-- `ArchiveStep(string StepName)` → `StepArchived(string CatalogId, string StepName)`
-- `UnarchiveStep(string StepName)` → `StepUnarchived(string CatalogId, string StepName)`
+Commands: `CreateCatalog`, `UpdateCatalog`, `ArchiveCatalog`, `UnarchiveCatalog`
 
-**Updated validation:**
-- `UpsertStep` rejects if `stepDefinition.Target` not in `state.Targets`
+### CatalogStepAggregate (current)
 
----
+```csharp
+public record CatalogStepState(
+    string Id, string CatalogId, string TargetId, string StepName,
+    string Method, string Path, JsonElement? Defaults, bool IsArchived,
+    JsonElement? RequestShape, JsonElement? ResponseShape,
+    bool IsPolling, int? RetryCount, int? RetryDurationMs);
+```
 
-### WorkflowAggregate
+Commands: `UpsertStep`, `ArchiveStep`, `UnarchiveStep`
 
-**State:**
+### WorkflowAggregate (current)
+
 ```csharp
 public record WorkflowState(
     string Id,
     string Name,
-    List<WorkflowStep> Steps,        // was List<StepInvocation>, no CatalogIds
+    List<WorkflowStep> Steps,
     List<AssertionDefinition> Assertions,
-    bool IsArchived);
+    bool IsArchived,
+    string Description = "");
 
-public record WorkflowStep(Guid Id, string StepName, string CatalogId);
+public record WorkflowStep
+{
+    public string Id { get; init; }           // client-generated UUID
+    public string CatalogStepId { get; init; } // UUID of the CatalogStep aggregate
+    public string CatalogId { get; init; }
+    public JsonElement? Defaults { get; init; }
+}
 ```
 
-**Removed:** `CatalogIds`, `AddCatalog`, `RemoveCatalog`, `CatalogAdded`, `CatalogRemoved`
+Commands: `CreateWorkflow`, `RenameWorkflow`, `UpdateDescription`, `AppendStep`, `InsertStepBefore`, `RemoveStep`, `SetStepDefaults`, `AddAssertion`, `ArchiveWorkflow`, `UnarchiveWorkflow`
 
-**Replaced step commands:**
-
-| Old | New |
-|---|---|
-| `AddStep(StepInvocation)` | `AppendStep(WorkflowStep)` |
-| *(new)* | `InsertStepBefore(Guid beforeId, WorkflowStep)` |
-| `UpdateStep(int Index, StepInvocation)` | `UpdateStep(Guid id, WorkflowStep)` |
-| `RemoveStep(int Index)` | `RemoveStep(Guid id)` |
-
-**Updated validation:**
-- `AddAssertion` rejects if any step name referenced in the assertion does not exist in `state.Steps`
+**TODO:** `AddAssertion` should validate that step names referenced in the assertion exist in `state.Steps`.
 
 ---
 
-### TestRunAggregate
+### TestRunAggregate (current)
 
-**State:**
 ```csharp
-public record TestRunState(
+public record WorkflowRunState(
     string Id,
     string WorkflowId,
-    RunStatus Status,          // Pending | Running | Completed
-    List<StepRunResult> Steps,
+    string Status,        // "pending" | "completed" | "failed"
     bool? Passed,
-    DateTimeOffset StartedAt,
-    long? TotalDurationMs);
-
-public record StepRunResult(string StepName, int StatusCode, string ResponseBody, long DurationMs);
-public enum RunStatus { Pending, Running, Completed }
+    JsonElement? Result,
+    string? Error,
+    DateTimeOffset TriggeredAt,
+    long? DurationMs);
 ```
 
 **Commands / Events:**
 | Command | Event | Notes |
 |---|---|---|
-| `StartRun(RunId, WorkflowId, WorkflowDefinition)` | `RunStarted(RunId, WorkflowId, WorkflowDefinition, StartedAt)` | Snapshots full resolved definition; triggers outbox entry |
-| `RecordStepResult(StepName, StatusCode, ResponseBody, DurationMs)` | `StepResultRecorded(RunId, StepName, StatusCode, ResponseBody, DurationMs)` | One per executed step |
-| `CompleteRun(Passed, TotalDurationMs)` | `RunCompleted(RunId, Passed, TotalDurationMs)` | Finalizes the run |
+| `TriggerRun(Id, WorkflowId)` | `RunTriggered(Id, WorkflowId, TriggeredAt)` | Creates outbox entry; inserts `test_run_summaries` row |
+| `RecordResult(Passed, Result, DurationMs)` | `RunCompleted(Id, Passed, Result, DurationMs)` | Full `WorkflowResult` JSON stored as blob |
+| `RecordFailure(Error, DurationMs)` | `RunFailed(Id, Error, DurationMs)` | For unexpected exceptions |
 
-`WorkflowDefinition` in `StartRun` is the fully resolved definition at the moment of dispatch — steps, assertions, and targets from all referenced catalogs merged in. The background worker reads from the event, not from current aggregate state, so in-progress runs are unaffected by subsequent edits.
+**Execution flow:**
+1. `POST /api/workflows/{id}/run` dispatches `TriggerRun`, creating an outbox row
+2. `WorkflowExecutionService` (background worker) claims the row, loads current workflow + catalog step state, calls `JsonWorkflowRunner.RunAsync`
+3. Posts `RecordResult` or `RecordFailure` to finalize; marks outbox row processed
+4. Up to `WorkflowExecution:MaxAttempts` retries on exception before `RecordFailure`
 
-**Execution flow (background worker):**
-1. Outbox entry for `RunStarted` is picked up by a hosted service
-2. Worker reads the snapshotted `WorkflowDefinition` directly from the event
-3. Calls `JsonWorkflowRunner.RunAsync` with the snapshotted definition
-4. Posts `RecordStepResult` for each `StepResult` in `WorkflowResult.Steps`
-5. Posts `CompleteRun(Passed, DurationMs)` to finalize
-
-**Integration test note:** Tests use a polling step (see StepWise library changes below) to wait for `status = "Completed"` before asserting.
+**TODO (future):** migrate to `StartRun` → `RecordStepResult` (per step) → `CompleteRun` with a `Running` intermediate status, snapshotting the full `WorkflowDefinition` in the event so in-progress runs are isolated from subsequent edits.
 
 ---
 
@@ -194,32 +194,35 @@ All mutations are sent as a `CommandBatch` to the aggregate's command endpoint. 
 
 | Method | Path | Accepted commands |
 |---|---|---|
-| `POST` | `/catalogs/commands` | `CreateCatalog`, `UpsertStep`, `ArchiveStep`, `UnarchiveStep`, `UpsertTarget`, `RemoveTarget` |
-| `POST` | `/workflows/commands` | `CreateWorkflow`, `RenameWorkflow`, `AppendStep`, `InsertStepBefore`, `UpdateStep`, `RemoveStep`, `AddAssertion`, `RemoveAssertion`, `ArchiveWorkflow`, `UnarchiveWorkflow` |
-| `POST` | `/runs/commands` | `StartRun`, `RecordStepResult`, `CompleteRun` |
+| `POST` | `/targets/commands` | `CreateTarget`, `UpdateTarget`, `ArchiveTarget`, `UnarchiveTarget` |
+| `POST` | `/catalogs/commands` | `CreateCatalog`, `UpdateCatalog`, `ArchiveCatalog`, `UnarchiveCatalog` |
+| `POST` | `/catalog-steps/commands` | `UpsertStep`, `ArchiveStep`, `UnarchiveStep` |
+| `POST` | `/workflows/commands` | `CreateWorkflow`, `RenameWorkflow`, `UpdateDescription`, `AppendStep`, `InsertStepBefore`, `RemoveStep`, `SetStepDefaults`, `AddAssertion`, `ArchiveWorkflow`, `UnarchiveWorkflow` |
+| `POST` | `/runs/commands` | `TriggerRun`, `RecordResult`, `RecordFailure` |
 
 ### Aggregate GET endpoints (via `MapAggregate`)
 
-Return the folded aggregate state. These are the only responses referenced in integration tests.
-
 | Method | Path | Returns |
 |---|---|---|
+| `GET` | `/targets/{id}` | `TargetState` |
 | `GET` | `/catalogs/{id}` | `CatalogState` |
+| `GET` | `/catalog-steps/{id}` | `CatalogStepState` |
 | `GET` | `/workflows/{id}` | `WorkflowState` |
-| `GET` | `/runs/{id}` | `TestRunState` |
+| `GET` | `/runs/{id}` | `WorkflowRunState` |
 
 ### Read-model list endpoints
 
 | Method | Path | Returns |
 |---|---|---|
-| `GET` | `/api/catalogs` | `catalog_summaries` rows (desc by `created_at`) |
-| `GET` | `/api/workflows` | `workflow_summaries` rows (desc by `created_at`) |
-| `GET` | `/api/runs` | `test_run_summaries` rows (desc by `started_at`, limit 100) |
+| `GET` | `/targets` | `target_summaries` rows |
+| `GET` | `/catalogs` | `catalog_summaries` rows |
+| `GET` | `/catalog-steps` | `catalog_step_summaries` rows (filterable by `catalogId`) |
+| `GET` | `/workflows` | `workflow_summaries` rows |
+| `GET` | `/runs` | `test_run_summaries` rows joined with `workflow_summaries` (desc by `started_at`) |
 
-### Removed
-- `GET /api/ping`
-- `POST /api/workflows/{id}/run`
-- All convenience endpoints added in the previous session
+### Execution trigger endpoint
+
+`POST /api/workflows/{id}/run` — body `{ "runId": "client-uuid" }`. Dispatches `TriggerRun`; returns `{ runId }`. Poll `GET /runs/{runId}` for result.
 
 ### Integration test conventions
 - Command steps (`POST /*/commands`) are fire-and-forget — their responses are never captured

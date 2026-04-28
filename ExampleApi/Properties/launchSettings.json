@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ExampleApi": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:3001"
+    }
+  }
+}

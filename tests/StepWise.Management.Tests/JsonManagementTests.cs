@@ -92,6 +92,9 @@ public class JsonManagementTests : JsonWorkflowTestBase
     [Fact] public Task Target_05_ListIncludesArchivedWhenFlagSet() =>
         RunWorkflowAsync("WorkflowTests/target-05-list-includes-archived.workflow.json");
 
+    [Fact] public Task Target_06_CreatedAt_PresentInList() =>
+        RunWorkflowAsync("WorkflowTests/target-06-created-at.workflow.json");
+
     // ── Workflow ──────────────────────────────────────────────────────────────
 
     [Fact] public Task Workflow_06_Create_NameCorrectAndStepsEmpty() =>

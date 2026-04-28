@@ -1,0 +1,21 @@
+{
+  "name": "Example_02_GetProduct_FieldsAsserted",
+  "steps": [
+    {
+      "step": "adminCreateProduct",
+      "with": {
+        "name": { "static": "Ceramic Mug" },
+        "category": { "static": "kitchenware" },
+        "price": { "static": 14.99 },
+        "stock": { "static": 25 },
+        "description": { "static": "Handmade stoneware" }
+      }
+    },
+    { "step": "getProduct" }
+  ],
+  "assertions": [
+    { "equal": ["$getProduct.name", "Ceramic Mug"] },
+    { "equal": ["$getProduct.category", "kitchenware"] },
+    { "equal": ["$getProduct.description", "Handmade stoneware"] }
+  ]
+}

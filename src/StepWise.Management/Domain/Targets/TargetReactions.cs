@@ -12,8 +12,8 @@ public static class TargetReactions
         {
             var conn = ((NpgsqlTransaction)tx).Connection!;
             await conn.ExecuteAsync(@"
-                INSERT INTO target_summaries (id, name, base_url, is_archived)
-                VALUES (@id, @name, @baseUrl, false)
+                INSERT INTO target_summaries (id, name, base_url, is_archived, created_at)
+                VALUES (@id, @name, @baseUrl, false, now())
                 ON CONFLICT (id) DO NOTHING",
                 new { id = e.Id, name = e.Name, baseUrl = e.BaseUrl },
                 tx);

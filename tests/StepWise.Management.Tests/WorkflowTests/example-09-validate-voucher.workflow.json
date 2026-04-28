@@ -1,0 +1,10 @@
+{
+  "name": "Example_09_ValidateVoucher_ValidIsTrue",
+  "steps": [
+    { "step": "adminCreateVoucher" },
+    { "step": "validateVoucher" }
+  ],
+  "assertions": [
+    { "equal": ["$validateVoucher.valid", "true"] }
+  ]
+}
