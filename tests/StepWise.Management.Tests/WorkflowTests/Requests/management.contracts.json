@@ -1,0 +1,222 @@
+{
+  "steps": {
+    "createTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "CreateTarget" },
+        "payload": { "static": {
+          "id": { "generated": "guid" },
+          "name": { "generated": "guid" },
+          "baseUrl": { "static": "http://localhost:5000" }
+        }}
+      }
+    },
+    "postTargetCommands": {
+      "defaults": {
+        "aggregateId": { "from": "createTarget.payload.id" },
+        "commands": { "from": "targetItems" }
+      }
+    },
+    "createCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "CreateCatalog" },
+        "payload": { "static": {
+          "id": { "generated": "guid" },
+          "name": { "generated": "guid" }
+        }}
+      }
+    },
+    "postCatalogCommands": {
+      "defaults": {
+        "aggregateId": { "from": "createCatalog.payload.id" },
+        "commands": { "from": "catalogItems" }
+      }
+    },
+    "upsertStep": {
+      "accumulateAs": "catalogStepItems",
+      "defaults": {
+        "type": { "static": "UpsertStep" },
+        "payload": { "static": {
+          "id": { "generated": "guid" },
+          "catalogId": { "from": "createCatalog.payload.id" },
+          "stepName": { "generated": "guid" },
+          "targetId": { "from": "listTargets[?name=createTarget.payload.name].id" },
+          "method": { "static": "GET" },
+          "path": { "static": "/api/ping" }
+        }}
+      }
+    },
+    "archiveTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "ArchiveTarget" },
+        "payload": { "static": {} }
+      }
+    },
+    "archiveCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "ArchiveCatalog" },
+        "payload": { "static": {} }
+      }
+    },
+    "archiveStep": {
+      "accumulateAs": "catalogStepItems",
+      "defaults": {
+        "type": { "static": "ArchiveStep" },
+        "payload": { "static": {} }
+      }
+    },
+    "postCatalogStepCommands": {
+      "defaults": {
+        "aggregateId": { "from": "upsertStep.payload.id" },
+        "commands": { "from": "catalogStepItems" }
+      }
+    },
+    "createWorkflow": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "CreateWorkflow" },
+        "payload": { "static": {
+          "id": { "generated": "guid" },
+          "name": { "generated": "guid" }
+        }}
+      }
+    },
+    "renameWorkflow": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "RenameWorkflow" },
+        "payload": { "static": {
+          "name": { "generated": "guid" }
+        }}
+      }
+    },
+    "appendStep": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "AppendStep" },
+        "payload": { "static": {
+          "id": { "generated": "guid" },
+          "catalogStepId": { "from": "upsertStep.payload.id" },
+          "catalogId": { "from": "createCatalog.payload.id" }
+        }}
+      }
+    },
+    "insertStepBefore": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "InsertStepBefore" },
+        "payload": { "static": {
+          "beforeId": { "from": "appendStep.payload.id" },
+          "id": { "generated": "guid" },
+          "catalogStepId": { "from": "upsertStep.payload.id" },
+          "catalogId": { "from": "createCatalog.payload.id" }
+        }}
+      }
+    },
+    "removeStep": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "RemoveStep" },
+        "payload": { "static": {
+          "id": { "from": "appendStep.payload.id" }
+        }}
+      }
+    },
+    "setStepDefaults": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "SetStepDefaults" },
+        "payload": { "static": {
+          "id": { "from": "appendStep.payload.id" }
+        }}
+      }
+    },
+    "addAssertion": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "AddAssertion" },
+        "payload": { "static": {
+          "assertion": { "static": {} }
+        }}
+      }
+    },
+    "archiveWorkflow": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "ArchiveWorkflow" },
+        "payload": { "static": {} }
+      }
+    },
+    "unarchiveWorkflow": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "UnarchiveWorkflow" },
+        "payload": { "static": {} }
+      }
+    },
+    "postWorkflowCommands": {
+      "defaults": {
+        "aggregateId": { "from": "createWorkflow.payload.id" },
+        "commands": { "from": "workflowItems" }
+      }
+    },
+    "runWorkflow": {
+      "defaults": {
+        "runId": { "generated": "guid" }
+      }
+    },
+    "updateTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "UpdateTarget" },
+        "payload": { "static": {
+          "name": { "generated": "guid" },
+          "baseUrl": { "static": "http://localhost:5000" }
+        }}
+      }
+    },
+    "unarchiveTarget": {
+      "accumulateAs": "targetItems",
+      "defaults": {
+        "type": { "static": "UnarchiveTarget" },
+        "payload": { "static": {} }
+      }
+    },
+    "updateCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "UpdateCatalog" },
+        "payload": { "static": {
+          "name": { "generated": "guid" },
+          "description": { "static": "" }
+        }}
+      }
+    },
+    "unarchiveCatalog": {
+      "accumulateAs": "catalogItems",
+      "defaults": {
+        "type": { "static": "UnarchiveCatalog" },
+        "payload": { "static": {} }
+      }
+    },
+    "unarchiveStep": {
+      "accumulateAs": "catalogStepItems",
+      "defaults": {
+        "type": { "static": "UnarchiveStep" },
+        "payload": { "static": {} }
+      }
+    },
+    "updateWorkflowDescription": {
+      "accumulateAs": "workflowItems",
+      "defaults": {
+        "type": { "static": "UpdateDescription" },
+        "payload": { "static": {
+          "description": { "static": "" }
+        }}
+      }
+    }
+  }
+}

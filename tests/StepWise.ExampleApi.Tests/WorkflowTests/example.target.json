@@ -1,0 +1,31 @@
+{
+  "baseUrl": "http://localhost:5010",
+  "steps": {
+    "adminCreateUser":    { "method": "POST",  "path": "/admin/users",
+                            "headers": { "X-Admin-Key": { "static": "admin-secret" } } },
+    "adminCreateProduct": { "method": "POST",  "path": "/admin/products",
+                            "headers": { "X-Admin-Key": { "static": "admin-secret" } } },
+    "adminSetStock":      { "method": "PATCH", "path": "/admin/products/{id}/stock",
+                            "headers": { "X-Admin-Key": { "static": "admin-secret" } },
+                            "pathParams": { "id": { "from": "adminCreateProduct.id" } } },
+    "adminCreateVoucher": { "method": "POST",  "path": "/admin/vouchers",
+                            "headers": { "X-Admin-Key": { "static": "admin-secret" } } },
+    "login":              { "method": "POST",  "path": "/auth/login" },
+    "listProducts":       { "method": "GET",   "path": "/products" },
+    "getProduct":         { "method": "GET",   "path": "/products/{id}",
+                            "pathParams": { "id": { "from": "adminCreateProduct.id" } } },
+    "addToCart":          { "method": "POST",  "path": "/cart/items",
+                            "headers": { "Authorization": { "template": "Bearer {login.token}" } } },
+    "getCart":            { "method": "GET",   "path": "/cart",
+                            "headers": { "Authorization": { "template": "Bearer {login.token}" } } },
+    "placeOrder":         { "method": "POST",  "path": "/orders",
+                            "headers": { "Authorization": { "template": "Bearer {login.token}" } } },
+    "getOrder":           { "method": "GET",   "path": "/orders/{id}",
+                            "headers": { "Authorization": { "template": "Bearer {login.token}" } },
+                            "pathParams": { "id": { "from": "placeOrder.id" } } },
+    "cancelOrder":        { "method": "POST",  "path": "/orders/{id}/cancel",
+                            "headers": { "Authorization": { "template": "Bearer {login.token}" } },
+                            "pathParams": { "id": { "from": "placeOrder.id" } } },
+    "validateVoucher":    { "method": "POST",  "path": "/vouchers/validate" }
+  }
+}

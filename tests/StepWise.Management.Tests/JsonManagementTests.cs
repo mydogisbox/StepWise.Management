@@ -10,16 +10,21 @@ namespace StepWise.Management.Tests;
 /// </summary>
 public class JsonManagementTests : JsonWorkflowTestBase
 {
-    protected override IReadOnlyList<string> RequestPaths =>
+    protected override IReadOnlyList<string> ContractPaths =>
     [
-        "Requests/management.requests.json"
+        "WorkflowTests/Requests/management.contracts.json"
     ];
 
-    protected override string TargetsPath => "WorkflowTests/targets.json";
+    protected override IReadOnlyList<string> TargetPaths =>
+    [
+        "WorkflowTests/management.target.json"
+    ];
 
     protected override IReadOnlyList<string> SharedWorkflowPaths =>
     [
-        "WorkflowTests/setup-catalog-with-step.workflow.json"
+        "WorkflowTests/setup-catalog-with-step.workflow.json",
+        "WorkflowTests/setup-admin-create-product-step.workflow.json",
+        "WorkflowTests/setup-example-catalog.workflow.json"
     ];
 
     // ── Catalog ───────────────────────────────────────────────────────────────
@@ -154,4 +159,13 @@ public class JsonManagementTests : JsonWorkflowTestBase
 
     [Fact] public Task Execution_19_RunResultStoredAsObject() =>
         RunWorkflowAsync("WorkflowTests/execution-19-run-result-stored-as-object.workflow.json");
+
+    [Fact] public Task Execution_20_ProductCategoryFilter() =>
+        RunWorkflowAsync("WorkflowTests/execution-20-category-filter.workflow.json");
+
+    [Fact] public Task Execution_21_InStockFilter() =>
+        RunWorkflowAsync("WorkflowTests/execution-21-in-stock-filter.workflow.json");
+
+    [Fact] public Task Execution_22_VoucherValidationWithAssertions() =>
+        RunWorkflowAsync("WorkflowTests/execution-22-voucher-validation.workflow.json");
 }

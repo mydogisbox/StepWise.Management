@@ -17,7 +17,7 @@ Do **not** edit files in `../Walkthrough` or `../CommandFramework`. These are si
 dotnet run --project src/StepWise.Management
 
 # Build only
-dotnet build
+dotnet build StepWise.Management.sln
 
 # Run all tests (starts DB, runs migrations, starts API, runs tests, stops API)
 bash test.sh
@@ -26,7 +26,7 @@ bash test.sh
 dotnet test tests/StepWise.Management.Tests --filter "FullyQualifiedName~Catalog_01"
 ```
 
-Tests are integration tests. Use `test.sh` — it handles the full lifecycle (DB, migrations, API start/stop).
+Tests are integration tests. Use `test.sh` — it handles the full lifecycle (DB, migrations, API start/stop). `test.sh` also starts the **Example API** on `http://localhost:5010` — a simple e-commerce service used as realistic test data for execution workflows. See `ExampleApi/EXAMPLE_API.md` for its endpoints, seeded data, and auth scheme. Do not read `ExampleApi/Program.cs` to answer questions about the API.
 
 ---
 
@@ -95,7 +95,7 @@ Three reactions maintain this table across the run lifecycle:
 
 ### Workflow execution
 
-`POST /api/workflows/{id}/run` — synchronous: loads the workflow, resolves catalog steps and targets, runs `JsonWorkflowRunner.RunAsync`, records the result as a `TestRun` aggregate, always returns `{ runId, result }` with HTTP 200. Check `result.passed` to determine pass/fail.
+`POST /api/workflows/{id}/run` — dispatches a `TriggerRun` command and writes an outbox entry, then returns `{ runId }` with HTTP 200 immediately. `WorkflowExecutionService` (background service) picks up the outbox row, loads the workflow, resolves catalog steps and targets, runs `JsonWorkflowRunner.RunAsync`, then records `RecordResult` or `RecordFailure` on the `TestRun` aggregate. Callers poll `GET /runs/{runId}` until `passed` is non-null.
 
 ---
 
@@ -107,15 +107,27 @@ Tests live in `tests/StepWise.Management.Tests/WorkflowTests/`. They use `Walkth
 
 ### File layout
 
+The Walkthrough library splits step definitions into two separate concerns:
+
+- **Contracts** (`.contracts.json`) — body defaults and accumulation behavior (`defaults`, `accumulateAs`). No routing.
+- **Targets** (`.target.json`) — one file per target; contains `baseUrl` and a `steps` map of routing info (`method`, `path`, `pathParams`, `query`, `headers`).
+
 ```
-WorkflowTests/
-  targets.json                         ← target definitions (management + example APIs)
+tests/StepWise.Management.Tests/WorkflowTests/
+  management.target.json               ← management API routing
   setup-catalog-with-step.workflow.json ← shared setup, embedded via `workflow` step
   *.workflow.json                       ← one file per test scenario
   Requests/
-    management.requests.json            ← management API step definitions
-    example.requests.json               ← Example API step definitions
+    management.contracts.json          ← management API body defaults
+
+tests/StepWise.ExampleApi.Tests/WorkflowTests/
+  example.target.json                  ← Example API routing
+  *.workflow.json                       ← one file per test scenario
+  Requests/
+    example.contracts.json             ← Example API body defaults
 ```
+
+In `JsonWorkflowTestBase` subclasses: `ContractPaths` (list of contract files) and `TargetPaths` (list of target files) replace the old `RequestPaths`/`TargetsPath` properties.
 
 ### Management-specific step conventions
 
@@ -190,6 +202,82 @@ Projection tables store JSON blobs (e.g. `defaults`) as `JSONB` columns. Two cas
 - **Reading**: cast back to text before handing to the reader — `defaults::text`, then `JsonSerializer.Deserialize<JsonElement>(str)`
 
 Omitting either cast causes a Npgsql type mismatch at runtime.
+
+---
+
+## Playwright UI tests
+
+`tests/StepWise.Management.UI.Tests/` contains headless browser tests using `Microsoft.Playwright` (Chromium). The base class `PlaywrightTestBase` handles browser lifecycle via `IAsyncLifetime`.
+
+These tests require the API running on `http://localhost:5000`. Run them with:
+
+```bash
+dotnet test tests/StepWise.Management.UI.Tests
+```
+
+Before the first run, install the Playwright browser binary:
+
+```bash
+dotnet build tests/StepWise.Management.UI.Tests -c Release
+pwsh tests/StepWise.Management.UI.Tests/bin/Release/net10.0/playwright.ps1 install chromium
+```
+
+---
+
+## UI manual testing checklist
+
+Run `bash dev.sh` to start the API, then open `http://localhost:5000` and verify:
+
+**Error handling**
+- [ ] Stop the API while the app is open. Click Refresh on any view — the content area should replace the list with a red error message (e.g. `Request failed (403)` or `Failed to fetch`), not go blank or show a silent empty toast.
+- [ ] Restart the API. Click Refresh — the content area should recover and show data again.
+- [ ] Start a workflow run, then stop the API mid-poll. The run result panel should show an error message instead of spinning silently until timeout.
+
+**Navigation**
+- [ ] Navigate to Targets (or any non-Catalog view). Refresh the browser. The same view should still be active.
+- [ ] Verify all four nav links (Catalogs, Targets, Workflows, Runs) load data on click.
+
+**Layout**
+- [ ] Each view (Catalogs, Targets, Workflows, Runs) should fill the full available width of the content area. None should be capped to a narrower max-width.
+- [ ] No `GET /favicon.ico` 404 errors in the browser console.
+
+**Catalogs**
+- [ ] Create a catalog — it appears in the list immediately.
+- [ ] Open catalog detail — panel slides in, name/description inputs pre-filled, steps list populated.
+- [ ] Edit name/description, click Save — title in panel header updates, list reflects the new name.
+- [ ] Archive a catalog from the detail panel — Archive button becomes Unarchive; catalog disappears from the list (Show Archived is off by default).
+- [ ] Add a step — step form appears, fill name/target/path, Save Step — step appears in the catalog steps list.
+- [ ] Edit a step — form pre-fills with existing values.
+- [ ] Archive/unarchive a step — archived badge appears/disappears.
+- [ ] Close the detail panel — list is still visible and functional.
+
+**Targets**
+- [ ] Create a target — appears in list.
+- [ ] Edit a target — modal opens pre-filled; save updates name and URL in the list.
+- [ ] Archive/unarchive a target — archived badge and opacity change; row disappears when Show Archived is off.
+- [ ] Show Archived toggle — archived rows appear/disappear without page reload.
+- [ ] Enter key in the URL field submits the target modal.
+- [ ] Clicking the modal backdrop closes it.
+
+**Workflows**
+- [ ] Create a workflow — detail panel opens, Steps tab active, steps list empty.
+- [ ] Add a step via the picker modal — filter input narrows the list; clicking a step closes the modal and adds it to the workflow steps list.
+- [ ] Remove a step — step disappears from the list.
+- [ ] Switch to Assertions tab — add an `equal` assertion (two fields visible) and a `notEmpty` assertion (one field). Both appear in the assertions list.
+- [ ] Archive/unarchive a workflow — Archived badge shows in the panel header; workflow disappears from the list when Show Archived is off.
+- [ ] Create a catalog, add a step, create a workflow, add the step to the workflow, click Run. The run result panel should show PASS or FAIL with assertion details.
+- [ ] A failed run (bad assertion) should show the assertion errors in the result panel.
+- [ ] Quick Run from the workflow list (Run link) opens the detail panel and starts the run.
+
+**Runs**
+- [ ] Click View on a completed run — detail block appears below the list with pass badge, duration, and step rows.
+- [ ] Each step row is a collapsible `<details>` — clicking it expands the JSON response.
+- [ ] A failed run shows the assertion errors block in red above the steps.
+
+**Empty states and validation**
+- [ ] On a fresh view (or after archiving everything), the list area shows "Nothing here yet." not a blank space.
+- [ ] Submitting the New Catalog / New Workflow modal with an empty name shows a toast error and does not close the modal.
+- [ ] Saving a step with missing name, target, or path shows a toast error.
 
 ---
 

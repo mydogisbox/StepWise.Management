@@ -1,0 +1,27 @@
+{
+  "baseUrl": "http://localhost:5000",
+  "steps": {
+    "postTargetCommands":      { "method": "POST", "path": "/targets/commands" },
+    "listTargets":             { "method": "GET",  "path": "/targets" },
+    "getTarget":               { "method": "GET",  "path": "/targets/{aggregateId}",
+                                 "pathParams": { "aggregateId": { "from": "createTarget.payload.id" } } },
+    "postCatalogCommands":     { "method": "POST", "path": "/catalogs/commands" },
+    "listCatalogs":            { "method": "GET",  "path": "/catalogs" },
+    "getCatalog":              { "method": "GET",  "path": "/catalogs/{aggregateId}",
+                                 "pathParams": { "aggregateId": { "from": "createCatalog.payload.id" } } },
+    "postCatalogStepCommands": { "method": "POST", "path": "/catalog-steps/commands" },
+    "listCatalogSteps":        { "method": "GET",  "path": "/catalog-steps",
+                                 "query": { "catalogId": { "from": "createCatalog.payload.id" } } },
+    "getCatalogStep":          { "method": "GET",  "path": "/catalog-steps/{aggregateId}",
+                                 "pathParams": { "aggregateId": { "from": "upsertStep.payload.id" } } },
+    "postWorkflowCommands":    { "method": "POST", "path": "/workflows/commands" },
+    "getWorkflow":             { "method": "GET",  "path": "/workflows/{aggregateId}",
+                                 "pathParams": { "aggregateId": { "from": "createWorkflow.payload.id" } } },
+    "runWorkflow":             { "method": "POST", "path": "/api/workflows/{workflowId}/run",
+                                 "pathParams": { "workflowId": { "from": "createWorkflow.payload.id" } } },
+    "getRun":                  { "method": "GET",  "path": "/runs/{runId}",
+                                 "pathParams": { "runId": { "from": "runWorkflow.runId" } } },
+    "listWorkflows":           { "method": "GET",  "path": "/workflows" },
+    "listRuns":                { "method": "GET",  "path": "/runs" }
+  }
+}

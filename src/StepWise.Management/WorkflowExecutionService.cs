@@ -184,8 +184,9 @@ public class WorkflowExecutionService : BackgroundService
             workflowEvents.Select(e => WorkflowAggregate.DeserializeEvent(e.EventType, e.Payload)),
             WorkflowAggregate.Apply)!;
 
-        var stepDefs = new Dictionary<string, Walkthrough.Json.StepDefinition>(StringComparer.OrdinalIgnoreCase);
-        var targets = new Dictionary<string, Walkthrough.Json.TargetDefinition>(StringComparer.OrdinalIgnoreCase);
+        var contracts = new Dictionary<string, Walkthrough.Json.StepContractDefinition>(StringComparer.OrdinalIgnoreCase);
+        var targetBaseUrls = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var targetSteps = new Dictionary<string, Dictionary<string, Walkthrough.Json.TargetStepDefinition>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var workflowStep in workflowState.Steps)
         {
@@ -200,13 +201,13 @@ public class WorkflowExecutionService : BackgroundService
                 throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' could not be folded.");
 
             var targetEvents = await _eventStore.LoadAsync($"targets/{catalogStep.TargetId}");
-            if (targetEvents.Count > 0)
+            if (targetEvents.Count > 0 && !targetBaseUrls.ContainsKey(catalogStep.TargetId))
             {
                 var targetState = Aggregate.Fold<TargetState, TargetEvent>(
                     targetEvents.Select(e => TargetAggregate.DeserializeEvent(e.EventType, e.Payload)),
                     TargetAggregate.Apply);
                 if (targetState != null)
-                    targets[catalogStep.TargetId] = targetState.BaseUrl;
+                    targetBaseUrls[catalogStep.TargetId] = targetState.BaseUrl;
             }
 
             var workflowDefaults = workflowStep.Defaults.HasValue
@@ -215,8 +216,10 @@ public class WorkflowExecutionService : BackgroundService
                 : null;
 
             var catalogDefaults = catalogStep.Defaults.HasValue
-                ? JsonSerializer.Deserialize<Dictionary<string, Walkthrough.Json.FieldValueDefinition>>(
+                ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
                     catalogStep.Defaults.Value.GetRawText(), JsonConfig.Options)
+                    ?.ToDictionary(kvp => kvp.Key,
+                        kvp => new Walkthrough.Json.FieldValueDefinition { Static = kvp.Value })
                 : null;
 
             var mergedDefaults = catalogDefaults != null
@@ -226,14 +229,37 @@ public class WorkflowExecutionService : BackgroundService
                 foreach (var (k, v) in workflowDefaults)
                     mergedDefaults[k] = v;
 
-            stepDefs[workflowStep.Id] = new Walkthrough.Json.StepDefinition
+            var headers = catalogStep.Headers.HasValue
+                ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    catalogStep.Headers.Value.GetRawText(), JsonConfig.Options)
+                    ?.ToDictionary(kvp => kvp.Key,
+                        kvp => new Walkthrough.Json.FieldValueDefinition { Static = kvp.Value })
+                : null;
+
+            contracts[workflowStep.Id] = new Walkthrough.Json.StepContractDefinition
             {
-                Target = catalogStep.TargetId,
-                Method = catalogStep.Method,
-                Path = catalogStep.Path,
                 Defaults = mergedDefaults.Count > 0 ? mergedDefaults : null
             };
+
+            if (!targetSteps.TryGetValue(catalogStep.TargetId, out var stepsForTarget))
+            {
+                stepsForTarget = new Dictionary<string, Walkthrough.Json.TargetStepDefinition>(StringComparer.OrdinalIgnoreCase);
+                targetSteps[catalogStep.TargetId] = stepsForTarget;
+            }
+
+            stepsForTarget[workflowStep.Id] = new Walkthrough.Json.TargetStepDefinition
+            {
+                Method = catalogStep.Method,
+                Path = catalogStep.Path,
+                Headers = headers
+            };
         }
+
+        var targets = targetSteps.Select(kvp => new Walkthrough.Json.TargetDefinition
+        {
+            BaseUrl = targetBaseUrls.TryGetValue(kvp.Key, out var url) ? url : "",
+            Steps = kvp.Value
+        }).ToList();
 
         var workflowDef = new Walkthrough.Json.WorkflowDefinition(
             Name: workflowState.Name,
@@ -242,7 +268,7 @@ public class WorkflowExecutionService : BackgroundService
                 .ToList(),
             Assertions: workflowState.Assertions.Count > 0 ? workflowState.Assertions : null);
 
-        return await Walkthrough.Json.JsonWorkflowRunner.RunAsync(workflowDef, stepDefs, targets);
+        return await Walkthrough.Json.JsonWorkflowRunner.RunAsync(workflowDef, contracts, targets);
     }
 
     private record OutboxPayload(string RunId, string WorkflowId);

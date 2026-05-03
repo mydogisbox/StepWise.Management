@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StepWise Management</title>
+  <link rel="icon" href="data:,">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
@@ -104,7 +105,7 @@
     </div>
 
     <!-- ===== TARGETS ===== -->
-    <div id="view-targets" class="hidden h-full overflow-auto p-8 max-w-4xl">
+    <div id="view-targets" class="hidden h-full overflow-auto p-8">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold">Targets</h2>
         <div class="flex items-center gap-3">
@@ -221,7 +222,7 @@
     </div>
 
     <!-- ===== RUNS ===== -->
-    <div id="view-runs" class="hidden h-full overflow-auto p-8 max-w-5xl">
+    <div id="view-runs" class="hidden h-full overflow-auto p-8">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold">Runs</h2>
         <button onclick="loadRuns()" class="text-sm text-indigo-600 hover:underline">Refresh</button>
@@ -342,7 +343,12 @@ async function api(method, path, body) {
   const res = await fetch(path, opts);
   const text = await res.text();
   let data; try { data = JSON.parse(text); } catch { data = text; }
-  if (!res.ok) throw new Error(typeof data === 'string' ? data : (data?.error ?? data?.title ?? 'Request failed'));
+  if (!res.ok) {
+    const msg = typeof data === 'object'
+      ? (data?.error ?? data?.title ?? `Request failed (${res.status})`)
+      : (data || `Request failed (${res.status})`);
+    throw new Error(msg);
+  }
   return data;
 }
 
@@ -383,6 +389,11 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+function showLoadError(containerId, message) {
+  document.getElementById(containerId).innerHTML =
+    `<p class="text-red-500 text-sm">${esc(message || 'Failed to load data.')}</p>`;
+}
+
 function table(headers, rows) {
   if (!rows.length) return '<p class="text-gray-400 text-sm">Nothing here yet.</p>';
   return `
@@ -408,6 +419,7 @@ function showView(name) {
   document.getElementById('view-' + name).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.getElementById('nav-' + name).classList.add('active');
+  localStorage.setItem('currentView', name);
   if (name === 'catalogs') loadCatalogs();
   else if (name === 'targets') loadTargets();
   else if (name === 'workflows') loadWorkflows();
@@ -424,7 +436,7 @@ async function loadCatalogs() {
       ${tdActions(actionLink('Edit', `openCatalogDetail('${esc(c.id)}')`), actionLink('Archive', `archiveCatalogFromList('${esc(c.id)}')`, 'yellow'))}
     </tr>`);
     document.getElementById('catalog-list').innerHTML = table(['Name', 'Description', ''], rows);
-  } catch(e) { showToast(e.message, true); }
+  } catch(e) { showToast(e.message, true); showLoadError('catalog-list', e.message); }
 }
 
 async function createCatalog() {
@@ -619,7 +631,7 @@ async function loadTargets() {
       )}
     </tr>`);
     document.getElementById('target-list').innerHTML = table(['Name', 'Base URL', 'Created', ''], rows);
-  } catch(e) { showToast(e.message, true); }
+  } catch(e) { showToast(e.message, true); showLoadError('target-list', e.message); }
 }
 
 async function saveTarget() {
@@ -692,7 +704,7 @@ async function loadWorkflows() {
       )}
     </tr>`);
     document.getElementById('workflow-list').innerHTML = table(['Name', 'Description', ''], rows);
-  } catch(e) { showToast(e.message, true); }
+  } catch(e) { showToast(e.message, true); showLoadError('workflow-list', e.message); }
 }
 
 async function createWorkflow() {
@@ -943,7 +955,7 @@ async function triggerRun() {
         if (result) { json.textContent = JSON.stringify(result, null, 2); json.classList.remove('hidden'); }
         loadRuns();
       }
-    } catch {}
+    } catch(e) { msg.textContent = e.message || 'Error polling run status.'; }
   }, 500);
 }
 
@@ -964,7 +976,7 @@ async function loadRuns() {
       ${tdActions(actionLink('View', `viewRun('${esc(r.id)}')`))}
     </tr>`);
     document.getElementById('runs-list').innerHTML = table(['Workflow', 'Result', 'Started', 'Duration', ''], rows);
-  } catch(e) { showToast(e.message, true); }
+  } catch(e) { showToast(e.message, true); showLoadError('runs-list', e.message); }
 }
 
 async function viewRun(id) {
@@ -1025,7 +1037,7 @@ document.querySelector('#nav-targets')?.addEventListener('click', () => {});
 // Initialize assertion form visibility
 updateAssertionForm();
 
-showView('catalogs');
+showView(localStorage.getItem('currentView') || 'catalogs');
 </script>
 </body>
 </html>

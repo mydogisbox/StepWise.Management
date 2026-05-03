@@ -1,0 +1,48 @@
+{
+  "name": "Execution_21_InStockFilter",
+  "steps": [
+    { "workflow": "SetupExampleCatalog" },
+    {
+      "build": "upsertStep",
+      "captureAs": "listInStockStep",
+      "with": {
+        "payload": { "static": {
+          "stepName": { "static": "list-in-stock" },
+          "method": { "static": "GET" },
+          "path": { "static": "/products?inStock=true" }
+        }}
+      }
+    },
+    {
+      "step": "postCatalogStepCommands",
+      "with": {
+        "aggregateId": { "from": "listInStockStep.payload.id" },
+        "commands": { "static": [{ "from": "listInStockStep" }] }
+      }
+    },
+    { "build": "createWorkflow" },
+    {
+      "build": "appendStep",
+      "captureAs": "step1",
+      "with": {
+        "payload": { "static": {
+          "catalogStepId": { "from": "listInStockStep.payload.id" }
+        }}
+      }
+    },
+    { "step": "postWorkflowCommands" },
+    { "step": "runWorkflow" },
+    {
+      "poll": "getRun",
+      "until": { "equal": ["$getRun.status", "completed"] },
+      "intervalMs": 200,
+      "timeoutMs": 10000
+    }
+  ],
+  "assertions": [
+    { "equal": ["$getRun.result.passed", "true"] },
+    { "count": ["$getRun.result.steps", "1"] },
+    { "empty": "$getRun.result.assertionErrors" },
+    { "notEmpty": "$getRun.result.steps[?stepName=step1.payload.id].response" }
+  ]
+}

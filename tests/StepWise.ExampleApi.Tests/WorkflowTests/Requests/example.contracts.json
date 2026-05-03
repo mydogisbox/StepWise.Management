@@ -1,0 +1,49 @@
+{
+  "steps": {
+    "adminCreateUser": {
+      "defaults": {
+        "email": { "generated": "email" },
+        "password": { "static": "password" },
+        "name": { "generated": "guid" }
+      }
+    },
+    "adminCreateProduct": {
+      "defaults": {
+        "id": { "generated": "guid" },
+        "name": { "generated": "guid" },
+        "category": { "static": "electronics" },
+        "price": { "static": 9.99 },
+        "stock": { "static": 10 },
+        "description": { "static": "" }
+      }
+    },
+    "adminSetStock": {
+      "defaults": {
+        "stock": { "static": 0 }
+      }
+    },
+    "adminCreateVoucher": {
+      "defaults": {
+        "code": { "generated": "guid" },
+        "discountPct": { "static": 10 }
+      }
+    },
+    "login": {
+      "defaults": {
+        "email": { "from": "adminCreateUser.email" },
+        "password": { "static": "password" }
+      }
+    },
+    "addToCart": {
+      "defaults": {
+        "productId": { "from": "adminCreateProduct.id" },
+        "quantity": { "static": 1 }
+      }
+    },
+    "validateVoucher": {
+      "defaults": {
+        "code": { "from": "adminCreateVoucher.code", "default": { "static": "" } }
+      }
+    }
+  }
+}

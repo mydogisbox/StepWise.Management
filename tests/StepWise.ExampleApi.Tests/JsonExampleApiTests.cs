@@ -1,22 +1,19 @@
 using Walkthrough.Json;
 using Xunit;
 
-namespace StepWise.Management.Tests;
+namespace StepWise.ExampleApi.Tests;
 
-/// <summary>
-/// Integration tests for the Example Order Management API.
-/// Requires ExampleApi running on http://localhost:3001 (started via dev.sh).
-/// All tests are self-contained: each creates its own products, users, and vouchers
-/// via admin endpoints before exercising user-facing behaviour.
-/// </summary>
 public class JsonExampleApiTests : JsonWorkflowTestBase
 {
-    protected override IReadOnlyList<string> RequestPaths =>
+    protected override IReadOnlyList<string> ContractPaths =>
     [
-        "Requests/example.requests.json"
+        "WorkflowTests/Requests/example.contracts.json"
     ];
 
-    protected override string TargetsPath => "WorkflowTests/targets.json";
+    protected override IReadOnlyList<string> TargetPaths =>
+    [
+        "WorkflowTests/example.target.json"
+    ];
 
     protected override IReadOnlyList<string> SharedWorkflowPaths => [];
 

@@ -1,7 +1,25 @@
 {
-  "name": "Execution_18_StoredAssertion",
+  "name": "Execution_20_ProductCategoryFilter",
   "steps": [
     { "workflow": "SetupExampleCatalog" },
+    {
+      "build": "upsertStep",
+      "captureAs": "listElectronicsStep",
+      "with": {
+        "payload": { "static": {
+          "stepName": { "static": "list-electronics" },
+          "method": { "static": "GET" },
+          "path": { "static": "/products?category=electronics" }
+        }}
+      }
+    },
+    {
+      "step": "postCatalogStepCommands",
+      "with": {
+        "aggregateId": { "from": "listElectronicsStep.payload.id" },
+        "commands": { "static": [{ "from": "listElectronicsStep" }] }
+      }
+    },
     { "build": "createWorkflow" },
     {
       "build": "appendStep",
@@ -12,14 +30,12 @@
         }}
       }
     },
-    { "build": "appendStep" },
     {
-      "build": "addAssertion",
+      "build": "appendStep",
+      "captureAs": "step2",
       "with": {
         "payload": { "static": {
-          "assertion": { "static": {
-            "notEmpty": { "from": "appendStep.payload.id" }
-          }}
+          "catalogStepId": { "from": "listElectronicsStep.payload.id" }
         }}
       }
     },
@@ -37,6 +53,6 @@
     { "count": ["$getRun.result.steps", "2"] },
     { "empty": "$getRun.result.assertionErrors" },
     { "notEmpty": "$getRun.result.steps[?stepName=step1.payload.id].response.id" },
-    { "notEmpty": "$getRun.result.steps[?stepName=appendStep.payload.id].response" }
+    { "notEmpty": "$getRun.result.steps[?stepName=step2.payload.id].response" }
   ]
 }

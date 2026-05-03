@@ -17,6 +17,7 @@ public record CatalogStepState(
     bool IsArchived,
     JsonElement? RequestShape = null,
     JsonElement? ResponseShape = null,
+    JsonElement? Headers = null,
     bool IsPolling = false,
     int? RetryCount = null,
     int? RetryDurationMs = null);
@@ -33,6 +34,7 @@ public record CatalogStepUpserted(
     JsonElement? Defaults,
     JsonElement? RequestShape = null,
     JsonElement? ResponseShape = null,
+    JsonElement? Headers = null,
     bool IsPolling = false,
     int? RetryCount = null,
     int? RetryDurationMs = null) : CatalogStepEvent;
@@ -50,6 +52,7 @@ public record UpsertStep(
     JsonElement? Defaults = null,
     JsonElement? RequestShape = null,
     JsonElement? ResponseShape = null,
+    JsonElement? Headers = null,
     bool IsPolling = false,
     int? RetryCount = null,
     int? RetryDurationMs = null);
@@ -69,7 +72,7 @@ public static class CatalogStepAggregate
         {
             new CatalogStepUpserted(
                 cmd.Id, cmd.CatalogId, cmd.TargetId, cmd.StepName, cmd.Method, cmd.Path,
-                cmd.Defaults, cmd.RequestShape, cmd.ResponseShape,
+                cmd.Defaults, cmd.RequestShape, cmd.ResponseShape, cmd.Headers,
                 cmd.IsPolling, cmd.RetryCount, cmd.RetryDurationMs)
         };
     }
@@ -91,7 +94,7 @@ public static class CatalogStepAggregate
         {
             CatalogStepUpserted evt => new CatalogStepState(
                 evt.Id, evt.CatalogId, evt.TargetId, evt.StepName, evt.Method, evt.Path, evt.Defaults, false,
-                evt.RequestShape, evt.ResponseShape, evt.IsPolling, evt.RetryCount, evt.RetryDurationMs),
+                evt.RequestShape, evt.ResponseShape, evt.Headers, evt.IsPolling, evt.RetryCount, evt.RetryDurationMs),
             CatalogStepArchived => state! with { IsArchived = true },
             CatalogStepUnarchived => state! with { IsArchived = false },
             _ => throw new InvalidOperationException($"Unknown event: {e.GetType().Name}")

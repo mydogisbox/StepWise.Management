@@ -1,16 +1,18 @@
 {
   "name": "Execution_19_RunResultStoredAsObject",
   "steps": [
-    { "workflow": "SetupCatalogWithStep" },
+    { "workflow": "SetupExampleCatalog" },
     { "build": "createWorkflow" },
     {
       "build": "appendStep",
+      "captureAs": "step1",
       "with": {
         "payload": { "static": {
-          "id": { "static": "e1900001-0000-0000-0000-000000000000" }
+          "catalogStepId": { "from": "adminCreateProductStep.payload.id" }
         }}
       }
     },
+    { "build": "appendStep" },
     { "step": "postWorkflowCommands" },
     { "step": "runWorkflow" },
     {
@@ -23,6 +25,9 @@
   "assertions": [
     { "equal": ["$getRun.passed", "true"] },
     { "equal": ["$getRun.result.passed", "true"] },
-    { "count": ["$getRun.result.steps", "1"] }
+    { "count": ["$getRun.result.steps", "2"] },
+    { "empty": "$getRun.result.assertionErrors" },
+    { "notEmpty": "$getRun.result.steps[?stepName=step1.payload.id].response.id" },
+    { "notEmpty": "$getRun.result.steps[?stepName=appendStep.payload.id].response" }
   ]
 }
