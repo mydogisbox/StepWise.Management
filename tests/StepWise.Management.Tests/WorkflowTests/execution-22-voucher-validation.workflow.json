@@ -11,7 +11,7 @@
           "method": { "static": "POST" },
           "path": { "static": "/vouchers/validate" },
           "defaults": { "static": {
-            "code": { "static": "SAVE10" }
+            "code": "SAVE10"
           }}
         }}
       }
@@ -38,7 +38,7 @@
       "with": {
         "payload": { "static": {
           "assertion": { "static": {
-            "equal": { "static": [{ "template": "{step1.payload.id}.valid" }, "true"] }
+            "equal": { "static": [{ "template": "${step1.payload.id}.valid" }, "true"] }
           }}
         }}
       }
@@ -48,7 +48,7 @@
       "with": {
         "payload": { "static": {
           "assertion": { "static": {
-            "equal": { "static": [{ "template": "{step1.payload.id}.discountPct" }, "10"] }
+            "equal": { "static": [{ "template": "${step1.payload.id}.discountPct" }, "10"] }
           }}
         }}
       }

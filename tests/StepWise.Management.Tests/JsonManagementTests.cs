@@ -5,7 +5,7 @@ namespace StepWise.Management.Tests;
 
 /// <summary>
 /// Integration tests for the StepWise.Management HTTP API.
-/// Requires the management server running on http://localhost:5000
+/// Requires the management server running on http://localhost:5020
 /// and a clean database (see README for setup).
 /// </summary>
 public class JsonManagementTests : JsonWorkflowTestBase

@@ -6,7 +6,7 @@
       "with": {
         "payload": { "static": {
           "name": { "static": "my-target" },
-          "baseUrl": { "static": "http://localhost:5000" }
+          "baseUrl": { "static": "http://localhost:5020" }
         }}
       }
     },
@@ -15,6 +15,6 @@
   ],
   "assertions": [
     { "equal": ["$getTarget.name", "my-target"] },
-    { "equal": ["$getTarget.baseUrl", "http://localhost:5000"] }
+    { "equal": ["$getTarget.baseUrl", "http://localhost:5020"] }
   ]
 }

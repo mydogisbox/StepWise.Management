@@ -9,7 +9,7 @@ public class PlaywrightTestBase : IAsyncLifetime
 
     protected IPage Page { get; private set; } = null!;
 
-    protected const string BaseUrl = "http://localhost:5000";
+    protected const string BaseUrl = "http://localhost:5020";
 
     public async Task InitializeAsync()
     {

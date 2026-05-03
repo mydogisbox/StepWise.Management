@@ -7,7 +7,7 @@
         "payload": { "static": {
           "id": { "generated": "guid" },
           "name": { "generated": "guid" },
-          "baseUrl": { "static": "http://localhost:5000" }
+          "baseUrl": { "static": "http://localhost:5020" }
         }}
       }
     },
@@ -174,7 +174,7 @@
         "type": { "static": "UpdateTarget" },
         "payload": { "static": {
           "name": { "generated": "guid" },
-          "baseUrl": { "static": "http://localhost:5000" }
+          "baseUrl": { "static": "http://localhost:5020" }
         }}
       }
     },

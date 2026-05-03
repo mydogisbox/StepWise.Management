@@ -56,7 +56,7 @@ Host=localhost;Database=stepwise_management;Username=postgres;Password=postgres
 dotnet run --project src/StepWise.Management
 ```
 
-Then open http://localhost:5000 in your browser.
+Then open http://localhost:5020 in your browser.
 
 ## API
 

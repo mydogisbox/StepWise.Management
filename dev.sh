@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start the DB, run migrations, then launch the API.
-# Open http://localhost:5000 after it starts.
+# Open http://localhost:5020 after it starts.
 
 set -eo pipefail
 
@@ -60,7 +60,7 @@ done
 # ── API ───────────────────────────────────────────────────────────────────────
 
 PID_FILE="/tmp/stepwise-management-api.pid"
-API_URL="http://localhost:5000"
+API_URL="http://localhost:5020"
 
 if [ -f "$PID_FILE" ]; then
   OLD_PID=$(cat "$PID_FILE")
@@ -127,6 +127,6 @@ for i in {1..30}; do
   fi
 done
 
-echo "  Management: http://localhost:5000"
+echo "  Management: http://localhost:5020"
 echo "  Example API: http://localhost:5010"
 wait $API_PID

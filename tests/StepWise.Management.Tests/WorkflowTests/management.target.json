@@ -1,5 +1,5 @@
 {
-  "baseUrl": "http://localhost:5000",
+  "baseUrl": "http://localhost:5020",
   "steps": {
     "postTargetCommands":      { "method": "POST", "path": "/targets/commands" },
     "listTargets":             { "method": "GET",  "path": "/targets" },

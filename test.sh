@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-API_URL="http://localhost:5000"
+API_URL="http://localhost:5020"
 API_PROJECT="src/StepWise.Management"
 EXAMPLE_URL="http://localhost:5010"
 EXAMPLE_PROJECT="ExampleApi"

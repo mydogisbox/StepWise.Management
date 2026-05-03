@@ -141,7 +141,7 @@ In `JsonWorkflowTestBase` subclasses: `ContractPaths` (list of contract files) a
     "payload": { "static": {
       "id": { "generated": "guid" },
       "name": { "generated": "guid" },
-      "baseUrl": { "static": "http://localhost:5000" }
+      "baseUrl": { "static": "http://localhost:5020" }
     }}
   }
 }
@@ -155,7 +155,7 @@ Build step `with` overrides use the `payload` wrapper to deep-merge inside the p
   "with": {
     "payload": { "static": {
       "name": { "static": "my-target" },
-      "baseUrl": { "static": "http://localhost:5000" }
+      "baseUrl": { "static": "http://localhost:5020" }
     }}
   }
 }
@@ -209,7 +209,7 @@ Omitting either cast causes a Npgsql type mismatch at runtime.
 
 `tests/StepWise.Management.UI.Tests/` contains headless browser tests using `Microsoft.Playwright` (Chromium). The base class `PlaywrightTestBase` handles browser lifecycle via `IAsyncLifetime`.
 
-These tests require the API running on `http://localhost:5000`. Run them with:
+These tests require the API running on `http://localhost:5020`. Run them with:
 
 ```bash
 dotnet test tests/StepWise.Management.UI.Tests
@@ -226,7 +226,7 @@ pwsh tests/StepWise.Management.UI.Tests/bin/Release/net10.0/playwright.ps1 insta
 
 ## UI manual testing checklist
 
-Run `bash dev.sh` to start the API, then open `http://localhost:5000` and verify:
+Run `bash dev.sh` to start the API, then open `http://localhost:5020` and verify:
 
 **Error handling**
 - [ ] Stop the API while the app is open. Click Refresh on any view — the content area should replace the list with a red error message (e.g. `Request failed (403)` or `Failed to fetch`), not go blank or show a silent empty toast.
