@@ -16,3 +16,7 @@ appsettings.Development.json
 
 # OS
 .DS_Store
+
+# Test logs
+test-api.log
+test-example.log

@@ -7,6 +7,7 @@ API_PROJECT="src/StepWise.Management"
 EXAMPLE_URL="http://localhost:5010"
 EXAMPLE_PROJECT="ExampleApi"
 TEST_PROJECT="tests/StepWise.Management.Tests"
+UI_TEST_PROJECT="tests/StepWise.Management.UI.Tests"
 
 DB_CONTAINER="stepwise-management-db"
 DB_PORT=5433
@@ -105,7 +106,7 @@ run_migrations
 # ── API ───────────────────────────────────────────────────────────────────────
 
 echo "→ Starting API..."
-dotnet run --project "$API_PROJECT" &
+dotnet run --project "$API_PROJECT" >test-api.log 2>&1 &
 
 echo -n "  Waiting for API"
 for i in {1..30}; do
@@ -122,7 +123,7 @@ for i in {1..30}; do
 done
 
 echo "→ Starting Example API..."
-dotnet run --project "$EXAMPLE_PROJECT" --urls "$EXAMPLE_URL" &
+dotnet run --project "$EXAMPLE_PROJECT" --urls "$EXAMPLE_URL" >test-example.log 2>&1 &
 
 echo -n "  Waiting for Example API"
 for i in {1..30}; do
@@ -144,7 +145,10 @@ echo "→ Running tests..."
 set +e
 dotnet test "$TEST_PROJECT" #--logger "console;verbosity=normal"
 TEST_EXIT=$?
+dotnet test "$UI_TEST_PROJECT" --filter "FullyQualifiedName~.Api."
+UI_TEST_EXIT=$?
 set -e
+[ $UI_TEST_EXIT -ne 0 ] && TEST_EXIT=$UI_TEST_EXIT
 
 echo "→ Stopping APIs..."
 kill_apis

@@ -1,283 +1,261 @@
-using System.Text.Json;
+using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class WorkflowApiTests : ManagementApiTestBase
+public abstract class WorkflowTestBase : CatalogStepTestBase
+{
+    protected async Task<UpsertStepOutput> SetupCatalogWithStepAsync()
+    {
+        await SetupAsync();
+        var step = await BuildAsync(new UpsertStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        return step;
+    }
+}
+
+public class Workflow_06_Create_NameAssertedAndStepsEmpty : WorkflowTestBase
 {
     [Fact]
-    public async Task Workflow_06_Create_NameCorrectAndStepsEmpty()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = "Test Workflow 6" } }
-        ]);
+        await BuildAsync(new CreateWorkflowCommand() with { Name = Static("Test Workflow 6") });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.Equal("Test Workflow 6", workflow.GetProperty("name").GetString());
-        Assert.Equal(0, workflow.GetProperty("steps").GetArrayLength());
+        Assert.Equal("Test Workflow 6", workflow.Name);
+        Assert.Empty(workflow.Steps);
     }
+}
 
+public class Workflow_07_Rename_NameUpdated : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_07_Rename_UpdatesName()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "RenameWorkflow", payload = new { name = "Renamed Workflow 7" } }
-        ]);
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new RenameWorkflowCommand() with { Name = Static("Renamed Workflow 7") });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.Equal("Renamed Workflow 7", workflow.GetProperty("name").GetString());
+        Assert.Equal("Renamed Workflow 7", workflow.Name);
     }
+}
 
+public class Workflow_08_AppendStep_OrderAndDefaultsAsserted : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_08_AppendStep_OrderAndDefaultsAsserted()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepAId = NewId();
-        var stepBId = NewId();
-        var defaultsA = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value1" });
-        var defaultsB = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value2" });
+        await BuildAsync(new CreateWorkflowCommand());
+        var stepA = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" }) });
+        var stepB = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value2" }) });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepAId, catalogStepId, catalogId, defaults = defaultsA } },
-            new { type = "AppendStep", payload = new { id = stepBId, catalogStepId, catalogId, defaults = defaultsB } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-        var steps = workflow.GetProperty("steps");
-
-        Assert.Equal(stepAId, steps[0].GetProperty("id").GetString());
-        Assert.Equal("value1", steps[0].GetProperty("defaults").GetProperty("param").GetString());
-        Assert.Equal(stepBId, steps[1].GetProperty("id").GetString());
-        Assert.Equal("value2", steps[1].GetProperty("defaults").GetProperty("param").GetString());
+        Assert.Equal(stepA.Id, workflow.Steps[0].Id);
+        Assert.Equal("value1", workflow.Steps[0].Defaults?.GetProperty("param").GetString());
+        Assert.Equal(stepB.Id, workflow.Steps[1].Id);
+        Assert.Equal("value2", workflow.Steps[1].Defaults?.GetProperty("param").GetString());
     }
+}
 
+public class Workflow_09_InsertStepBefore_OrderAsserted : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_09_InsertStepBefore_OrderAsserted()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepAId = NewId();
-        var stepBId = NewId();
-        var insertedId = NewId();
-        var defaultsA = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value1" });
-        var defaultsB = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value2" });
-        var defaultsInserted = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value3" });
+        await BuildAsync(new CreateWorkflowCommand());
+        var stepA    = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" }) });
+        var stepB    = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value2" }) });
+        var inserted = await BuildAsync(new InsertStepBeforeCommand() with
+        {
+            BeforeId = Static(stepB.Id),
+            Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value3" })
+        });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepAId, catalogStepId, catalogId, defaults = defaultsA } },
-            new { type = "AppendStep", payload = new { id = stepBId, catalogStepId, catalogId, defaults = defaultsB } },
-            new { type = "InsertStepBefore", payload = new { beforeId = stepBId, id = insertedId, catalogStepId, catalogId, defaults = defaultsInserted } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-        var steps = workflow.GetProperty("steps");
-
-        Assert.Equal(stepAId, steps[0].GetProperty("id").GetString());
-        Assert.Equal("value1", steps[0].GetProperty("defaults").GetProperty("param").GetString());
-        Assert.Equal(insertedId, steps[1].GetProperty("id").GetString());
-        Assert.Equal("value3", steps[1].GetProperty("defaults").GetProperty("param").GetString());
-        Assert.Equal(stepBId, steps[2].GetProperty("id").GetString());
-        Assert.Equal("value2", steps[2].GetProperty("defaults").GetProperty("param").GetString());
+        Assert.Equal(stepA.Id,    workflow.Steps[0].Id);
+        Assert.Equal("value1",    workflow.Steps[0].Defaults?.GetProperty("param").GetString());
+        Assert.Equal(inserted.Id, workflow.Steps[1].Id);
+        Assert.Equal("value3",    workflow.Steps[1].Defaults?.GetProperty("param").GetString());
+        Assert.Equal(stepB.Id,    workflow.Steps[2].Id);
+        Assert.Equal("value2",    workflow.Steps[2].Defaults?.GetProperty("param").GetString());
     }
+}
 
+public class Workflow_10_RemoveStep_OneStepRemains : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_10_RemoveStep_OneStepRemains()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepAId = NewId();
-        var stepBId = NewId();
+        await BuildAsync(new CreateWorkflowCommand());
+        var stepA = await BuildAsync(new AppendStepCommand());
+        var stepB = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new RemoveStepCommand() with { Id = Static(stepA.Id) });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepAId, catalogStepId, catalogId } },
-            new { type = "AppendStep", payload = new { id = stepBId, catalogStepId, catalogId } },
-            new { type = "RemoveStep", payload = new { id = stepAId } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-        var steps = workflow.GetProperty("steps");
-
-        Assert.Equal(1, steps.GetArrayLength());
-        Assert.Equal(stepBId, steps[0].GetProperty("id").GetString());
+        Assert.Single(workflow.Steps);
+        Assert.Equal(stepB.Id, workflow.Steps[0].Id);
     }
+}
 
+public class Workflow_11_SetStepDefaults_DefaultsAsserted : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_11_SetStepDefaults_DefaultsAsserted()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepId = NewId();
-        var defaults = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["param"] = "value1" });
+        await BuildAsync(new CreateWorkflowCommand());
+        var step = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new SetStepDefaultsCommand() with
+        {
+            Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" })
+        });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepId, catalogStepId, catalogId } },
-            new { type = "SetStepDefaults", payload = new { id = stepId, defaults } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-        var steps = workflow.GetProperty("steps");
-
-        Assert.Equal(1, steps.GetArrayLength());
-        Assert.Equal(stepId, steps[0].GetProperty("id").GetString());
-        Assert.Equal("value1", steps[0].GetProperty("defaults").GetProperty("param").GetString());
+        Assert.Single(workflow.Steps);
+        Assert.Equal(step.Id, workflow.Steps[0].Id);
+        Assert.Equal("value1", workflow.Steps[0].Defaults?.GetProperty("param").GetString());
     }
+}
 
+public class Workflow_12_BadAssertion_StoredSuccessfully : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_12_BadAssertion_StoredSuccessfully()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepId = NewId();
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AddAssertionCommand() with
+        {
+            Assertion = Static<object>(new { equal = new[] { "nonExistentStep.id", "appendStep.payload.id" } })
+        });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepId, catalogStepId, catalogId } },
-            new { type = "AddAssertion", payload = new { assertion = new { equal = new[] { "nonExistentStep.id", "appendStep.payload.id" } } } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.Equal(1, workflow.GetProperty("assertions").GetArrayLength());
+        Assert.Single(workflow.Assertions);
     }
+}
 
+public class Workflow_13_AddAssertion_StoredSuccessfully : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_13_AddAssertion_StoredAndAsserted()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepId = NewId();
+        var step = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AddAssertionCommand() with
+        {
+            Assertion = Static<object>(new { notEmpty = step.Id })
+        });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepId, catalogStepId, catalogId } },
-            new { type = "AddAssertion", payload = new { assertion = new { notEmpty = stepId } } }
-        ]);
-
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.Equal(1, workflow.GetProperty("assertions").GetArrayLength());
+        Assert.Single(workflow.Assertions);
     }
+}
 
+public class Workflow_14_ArchiveWorkflow_IsArchivedTrue : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_14_ArchiveWorkflow_IsArchivedTrue()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "ArchiveWorkflow", payload = new { } }
-        ]);
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new ArchiveWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.True(workflow.GetProperty("isArchived").GetBoolean());
+        Assert.True(workflow.IsArchived);
     }
+}
 
+public class Workflow_15_UnarchiveWorkflow_IsArchivedFalse : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_15_UnarchiveWorkflow_IsArchivedFalse()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "ArchiveWorkflow", payload = new { } },
-            new { type = "UnarchiveWorkflow", payload = new { } }
-        ]);
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new ArchiveWorkflowCommand());
+        await BuildAsync(new UnarchiveWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.False(workflow.GetProperty("isArchived").GetBoolean());
+        Assert.False(workflow.IsArchived);
     }
+}
 
+public class Workflow_16_UpdateDescription_DescriptionAsserted : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_16_UpdateDescription_DescriptionAsserted()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "UpdateDescription", payload = new { description = "A workflow description" } }
-        ]);
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new UpdateDescriptionCommand() with { Description = Static("A workflow description") });
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflow = await ExecuteAsync(new GetWorkflowRequest());
 
-        var workflow = await GetJsonAsync($"/workflows/{workflowId}");
-
-        Assert.Equal("A workflow description", workflow.GetProperty("description").GetString());
+        Assert.Equal("A workflow description", workflow.Description);
     }
+}
 
+public class Workflow_17_Archive_ExcludedFromList : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_17_ListExcludesArchivedByDefault()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        var workflowName = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = workflowName } },
-            new { type = "ArchiveWorkflow", payload = new { } }
-        ]);
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new ArchiveWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflows = await ExecuteAsync(new ListWorkflowsRequest());
 
-        var list = await GetJsonAsync("/workflows");
-
-        Assert.DoesNotContain(list.EnumerateArray(), w => w.GetProperty("name").GetString() == workflowName);
+        Assert.DoesNotContain(workflows, w => w.Name == create.Name);
     }
+}
 
+public class Workflow_18_Archive_IncludedInListWhenShowArchived : WorkflowTestBase
+{
     [Fact]
-    public async Task Workflow_18_ListIncludesArchivedWhenFlagSet()
+    public async Task Test()
     {
-        var workflowId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = "archived-workflow" } },
-            new { type = "ArchiveWorkflow", payload = new { } }
-        ]);
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new ArchiveWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        var workflows = await ExecuteAsync(new ListWorkflowsRequest() with { ShowArchived = Static("true") });
 
-        var list = await GetJsonAsync("/workflows?showArchived=true");
-
-        var match = list.EnumerateArray().First(w => w.GetProperty("id").GetString() == workflowId);
-        Assert.True(match.GetProperty("isArchived").GetBoolean());
+        var workflow = workflows.Single(w => w.Id == create.Id);
+        Assert.True(workflow.IsArchived);
     }
+}
 
+public class Runs_01_List_ShowsCompletedRun : WorkflowTestBase
+{
     [Fact]
-    public async Task Runs_01_List_ShowsCompletedRun()
+    public async Task Test()
     {
-        var (_, catalogId, catalogStepId) = await SetupCatalogWithStepAsync();
+        await SetupCatalogWithStepAsync();
 
-        var workflowId = NewId();
-        var stepId = NewId();
-        await PostCommandsAsync("workflows", workflowId,
-        [
-            new { type = "CreateWorkflow", payload = new { id = workflowId, name = NewId() } },
-            new { type = "AppendStep", payload = new { id = stepId, catalogStepId, catalogId } }
-        ]);
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        await ExecuteAsync(new RunWorkflowRequest());
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed");
+        var runs = await ExecuteAsync(new ListRunsRequest());
 
-        await RunAndPollAsync(workflowId);
-
-        var list = await GetJsonAsync("/runs");
-
-        Assert.NotEmpty(list.EnumerateArray());
-        var match = list.EnumerateArray().First(r => r.GetProperty("workflowId").GetString() == workflowId);
-        Assert.True(match.GetProperty("passed").GetBoolean());
+        var run = runs.Single(r => r.WorkflowId == create.Id);
+        Assert.True(run.Passed);
     }
 }

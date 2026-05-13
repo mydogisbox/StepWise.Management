@@ -1,117 +1,99 @@
-using System.Text.Json;
+using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class TargetApiTests : ManagementApiTestBase
+public class Target_01_Archive_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
-    public async Task Catalog_01_CreateTarget_BaseUrlAsserted()
+    public async Task Test()
     {
-        var targetId = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = "my-target", baseUrl = "http://localhost:5020" } }
-        ]);
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var target = await GetJsonAsync($"/targets/{targetId}");
+        await BuildAsync(new ArchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        Assert.Equal("my-target", target.GetProperty("name").GetString());
-        Assert.Equal("http://localhost:5020", target.GetProperty("baseUrl").GetString());
+        var target = await ExecuteAsync(new GetTargetRequest());
+        Assert.True(target.IsArchived);
     }
+}
 
+public class Target_02_Unarchive_IsArchivedFalse : ManagementTestBase
+{
     [Fact]
-    public async Task Target_01_Archive_IsArchivedTrue()
+    public async Task Test()
     {
-        var targetId = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = NewId(), baseUrl = "http://localhost:5020" } },
-            new { type = "ArchiveTarget", payload = new { } }
-        ]);
+        await BuildAsync(new CreateTargetCommand());
+        await BuildAsync(new ArchiveTargetCommand());
+        await BuildAsync(new UnarchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var target = await GetJsonAsync($"/targets/{targetId}");
-
-        Assert.True(target.GetProperty("isArchived").GetBoolean());
+        var target = await ExecuteAsync(new GetTargetRequest());
+        Assert.False(target.IsArchived);
     }
+}
 
+public class Target_03_Update_NameAndBaseUrlUpdated : ManagementTestBase
+{
     [Fact]
-    public async Task Target_02_Unarchive_IsArchivedFalse()
+    public async Task Test()
     {
-        var targetId = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = NewId(), baseUrl = "http://localhost:5020" } },
-            new { type = "ArchiveTarget", payload = new { } },
-            new { type = "UnarchiveTarget", payload = new { } }
-        ]);
+        await BuildAsync(new CreateTargetCommand() with
+        {
+            Name    = Static("original-name"),
+            BaseUrl = Static("http://original.com")
+        });
+        await BuildAsync(new UpdateTargetCommand() with
+        {
+            Name    = Static("updated-name"),
+            BaseUrl = Static("http://updated.com")
+        });
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var target = await GetJsonAsync($"/targets/{targetId}");
-
-        Assert.False(target.GetProperty("isArchived").GetBoolean());
+        var target = await ExecuteAsync(new GetTargetRequest());
+        Assert.Equal("updated-name",        target.Name);
+        Assert.Equal("http://updated.com",  target.BaseUrl);
     }
+}
 
+public class Target_04_Archive_ExcludedFromList : ManagementTestBase
+{
     [Fact]
-    public async Task Target_03_Update_NameAndUrlAsserted()
+    public async Task Test()
     {
-        var targetId = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = "original-name", baseUrl = "http://original.com" } },
-            new { type = "UpdateTarget", payload = new { name = "updated-name", baseUrl = "http://updated.com" } }
-        ]);
+        var create = await BuildAsync(new CreateTargetCommand());
+        await BuildAsync(new ArchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var target = await GetJsonAsync($"/targets/{targetId}");
-
-        Assert.Equal("updated-name", target.GetProperty("name").GetString());
-        Assert.Equal("http://updated.com", target.GetProperty("baseUrl").GetString());
+        var targets = await ExecuteAsync(new ListTargetsRequest());
+        Assert.DoesNotContain(targets, t => t.Name == create.Name);
     }
+}
 
+public class Target_05_Archive_IncludedInListWhenShowArchived : ManagementTestBase
+{
     [Fact]
-    public async Task Target_04_ListExcludesArchivedByDefault()
+    public async Task Test()
     {
-        var targetId = NewId();
-        var targetName = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = targetName, baseUrl = "http://localhost:5020" } },
-            new { type = "ArchiveTarget", payload = new { } }
-        ]);
+        var create = await BuildAsync(new CreateTargetCommand());
+        await BuildAsync(new ArchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var list = await GetJsonAsync("/targets");
-
-        Assert.DoesNotContain(list.EnumerateArray(), t => t.GetProperty("name").GetString() == targetName);
+        var targets = await ExecuteAsync(new ListTargetsRequest() with { ShowArchived = Static("true") });
+        var target  = targets.Single(t => t.Name == create.Name);
+        Assert.True(target.IsArchived);
     }
+}
 
+public class Target_06_Create_HasCreatedAt : ManagementTestBase
+{
     [Fact]
-    public async Task Target_05_ListIncludesArchivedWhenFlagSet()
+    public async Task Test()
     {
-        var targetId = NewId();
-        var targetName = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = targetName, baseUrl = "http://localhost:5020" } },
-            new { type = "ArchiveTarget", payload = new { } }
-        ]);
+        var create = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        var list = await GetJsonAsync("/targets?showArchived=true");
-
-        var match = list.EnumerateArray().FirstOrDefault(t => t.GetProperty("name").GetString() == targetName);
-        Assert.NotEqual(JsonValueKind.Undefined, match.ValueKind);
-        Assert.True(match.GetProperty("isArchived").GetBoolean());
-    }
-
-    [Fact]
-    public async Task Target_06_CreatedAt_PresentInList()
-    {
-        var targetId = NewId();
-        await PostCommandsAsync("targets", targetId,
-        [
-            new { type = "CreateTarget", payload = new { id = targetId, name = NewId(), baseUrl = "http://localhost:5020" } }
-        ]);
-
-        var list = await GetJsonAsync("/targets");
-
-        var match = list.EnumerateArray().First(t => t.GetProperty("id").GetString() == targetId);
-        Assert.False(string.IsNullOrEmpty(match.GetProperty("createdAt").GetString()));
+        var targets = await ExecuteAsync(new ListTargetsRequest());
+        Assert.NotNull(targets.Single(t => t.Name == create.Name).CreatedAt);
     }
 }

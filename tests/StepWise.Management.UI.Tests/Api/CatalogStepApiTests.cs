@@ -1,0 +1,183 @@
+using System.Text.Json;
+using Walkthrough.Http;
+using static Walkthrough.Core.FieldValues;
+
+namespace StepWise.Management.UI.Tests.Api;
+
+public abstract class CatalogStepTestBase : ManagementTestBase
+{
+    protected async Task<(CreateTargetOutput Target, TargetResponse[] Targets, CreateCatalogOutput Catalog)> SetupAsync()
+    {
+        var target  = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        var targets = await ExecuteAsync(new ListTargetsRequest());
+
+        var catalog = await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+
+        return (target, targets, catalog);
+    }
+}
+
+public class Catalog_03_AddStep_AllFieldsCorrect : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        var (target, targets, catalog) = await SetupAsync();
+        var catalogs = await ExecuteAsync(new ListCatalogsRequest());
+
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            StepName = Static("getStatus"),
+            Method   = Static("GET"),
+            Path     = Static("/api/status"),
+            Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" })
+        });
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.Equal("getStatus",                                       step.StepName);
+        Assert.Equal(targets.Single(t => t.Name == target.Name).Id,    step.TargetId);
+        Assert.Equal(catalogs.Single(c => c.Name == catalog.Name).Id,  step.CatalogId);
+        Assert.Equal("GET",                                             step.Method);
+        Assert.Equal("/api/status",                                     step.Path);
+        Assert.Equal("value1",                                          step.Defaults?.GetProperty("param").GetString());
+    }
+}
+
+public class Catalog_04_UpsertStep_UpdatesFields : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        var (target, _, _) = await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            StepName = Static("getStatus"),
+            Method   = Static("GET"),
+            Path     = Static("/api/catalogs"),
+            Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" })
+        });
+        var firstPost = await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        await ExecuteAsync(new GetCatalogStepRequest());
+
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            Id       = Static(firstPost[0].AggregateId),
+            StepName = Static("getStatus"),
+            Method   = Static("POST"),
+            Path     = Static("/api/catalogs/v2"),
+            Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value2" })
+        });
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.Equal("getStatus",       step.StepName);
+        Assert.Equal(target.Id,         step.TargetId);
+        Assert.Equal("POST",            step.Method);
+        Assert.Equal("/api/catalogs/v2", step.Path);
+        Assert.Equal("value2",          step.Defaults?.GetProperty("param").GetString());
+    }
+}
+
+public class Catalog_05_ArchiveStep_IsArchivedTrue : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand());
+        await BuildAsync(new ArchiveStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.True(step.IsArchived);
+    }
+}
+
+public class Catalog_06_ArchiveStep_ExcludedFromList : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand());
+        await BuildAsync(new ArchiveStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var steps = await ExecuteAsync(new ListCatalogStepsRequest());
+
+        Assert.Empty(steps);
+    }
+}
+
+public class Catalog_07_ArchiveStep_IncludedWhenShowArchived : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand() with { StepName = Static("archivedStep") });
+        await BuildAsync(new ArchiveStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var steps = await ExecuteAsync(new ListCatalogStepsRequest() with { ShowArchived = Static("true") });
+
+        Assert.Single(steps);
+        Assert.Equal("archivedStep", steps[0].StepName);
+    }
+}
+
+public class Catalog_08_ErrorCapturesStatus : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            CatalogId = Static(""),
+            TargetId  = Static("")
+        });
+        var raw       = (HttpRawResult)await ExecuteRawAsync(new PostCatalogStepCommandsRequest());
+        var errorBody = JsonSerializer.Deserialize<JsonElement>((string)raw.Body!);
+
+        Assert.Equal(422, raw.StatusCode);
+        Assert.NotEmpty(errorBody.GetProperty("error").GetString()!);
+    }
+}
+
+public class Catalog_09_SuccessCapturesStatus : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand());
+        var raw  = (HttpRawResult)await ExecuteRawAsync(new PostCatalogStepCommandsRequest());
+        var body = (CatalogStepCommandSuccess[])raw.Body!;
+
+        Assert.Equal(200, raw.StatusCode);
+        Assert.NotEmpty(body);
+    }
+}
+
+public class Catalog_13_UnarchiveStep_IsArchivedFalse : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand());
+        await BuildAsync(new ArchiveStepCommand());
+        await BuildAsync(new UnarchiveStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.False(step.IsArchived);
+    }
+}

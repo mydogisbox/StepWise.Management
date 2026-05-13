@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../Walkthrough/src/Walkthrough.Core/Walkthrough.Core.csproj" />
+    <ProjectReference Include="../../../Walkthrough/src/Walkthrough.Http/Walkthrough.Http.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
