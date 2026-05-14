@@ -13,7 +13,7 @@ public abstract record CatalogStepCommand<TOutput>() : BuildableRequest<TOutput>
     public override Type AccumulationKey => typeof(CatalogStepCommand);
 }
 
-public record UpsertStepOutput(string Id, string CatalogId, string StepName, string TargetId, string Method, string Path, object? Defaults = null);
+public record UpsertStepOutput(string Id, string CatalogId, string StepName, string TargetId, string Method, string Path, object? Defaults = null, object? RequestShape = null, object? ResponseShape = null, bool? IsPolling = null, int? RetryCount = null, int? RetryDurationMs = null, object? Headers = null);
 public record ArchiveStepOutput();
 public record UnarchiveStepOutput();
 
@@ -24,9 +24,15 @@ public record UpsertStepCommand() : CatalogStepCommand<UpsertStepOutput>
     public IFieldValue<string>  StepName  { get; init; } = Generators.RandomName();
     public IFieldValue<string>  TargetId  { get; init; } = From(ctx =>
         ctx.Get<TargetResponse[]>("listTargets").Single(t => t.Name == ctx.Get<CreateTargetOutput>("CreateTargetCommand").Name).Id);
-    public IFieldValue<string>  Method    { get; init; } = Static("GET");
-    public IFieldValue<string>  Path      { get; init; } = Static("/api/ping");
-    public IFieldValue<object?> Defaults  { get; init; } = Static<object?>(null);
+    public IFieldValue<string>  Method         { get; init; } = Static("GET");
+    public IFieldValue<string>  Path           { get; init; } = Static("/api/ping");
+    public IFieldValue<object?> Defaults       { get; init; } = Static<object?>(null);
+    public IFieldValue<object?> RequestShape   { get; init; } = Static<object?>(null);
+    public IFieldValue<object?> ResponseShape  { get; init; } = Static<object?>(null);
+    public IFieldValue<bool?>   IsPolling      { get; init; } = Static<bool?>(null);
+    public IFieldValue<int?>    RetryCount     { get; init; } = Static<int?>(null);
+    public IFieldValue<int?>    RetryDurationMs { get; init; } = Static<int?>(null);
+    public IFieldValue<object?> Headers         { get; init; } = Static<object?>(null);
 }
 
 public record ArchiveStepCommand()   : CatalogStepCommand<ArchiveStepOutput>;
@@ -72,7 +78,7 @@ public class PostCatalogStepCommandsStep : HttpStep<PostCatalogStepCommandsReque
 
 // ── GET /catalog-steps/{id} ───────────────────────────────────────────────────
 
-public record CatalogStepResponse(string Id, string CatalogId, string StepName, string TargetId, string Method, string Path, bool IsArchived, JsonElement? Defaults);
+public record CatalogStepResponse(string Id, string CatalogId, string StepName, string TargetId, string Method, string Path, bool IsArchived, JsonElement? Defaults, JsonElement? RequestShape, JsonElement? ResponseShape, bool? IsPolling, int? RetryCount, int? RetryDurationMs);
 
 public record GetCatalogStepRequest() : HttpWorkflowRequest<CatalogStepResponse>("getCatalogStep")
 {

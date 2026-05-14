@@ -165,6 +165,48 @@ public class Catalog_09_SuccessCapturesStatus : CatalogStepTestBase
     }
 }
 
+public class Catalog_14_StepShapes_StoredAndReturned : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            RequestShape  = Static<object?>(new Dictionary<string, object?> { ["kind"] = "request" }),
+            ResponseShape = Static<object?>(new Dictionary<string, object?> { ["kind"] = "response" })
+        });
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.Equal("request",  step.RequestShape?.GetProperty("kind").GetString());
+        Assert.Equal("response", step.ResponseShape?.GetProperty("kind").GetString());
+    }
+}
+
+public class Catalog_15_StepPolling_StoredAndReturned : CatalogStepTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupAsync();
+
+        await BuildAsync(new UpsertStepCommand() with
+        {
+            IsPolling       = Static<bool?>(true),
+            RetryCount      = Static<int?>(3),
+            RetryDurationMs = Static<int?>(500)
+        });
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        var step = await ExecuteAsync(new GetCatalogStepRequest());
+
+        Assert.True(step.IsPolling);
+        Assert.Equal(3,   step.RetryCount);
+        Assert.Equal(500, step.RetryDurationMs);
+    }
+}
+
 public class Catalog_13_UnarchiveStep_IsArchivedFalse : CatalogStepTestBase
 {
     [Fact]

@@ -176,7 +176,9 @@ public class RunWorkflowStep : HttpStep<RunWorkflowRequest, RunWorkflowResponse>
 
 // ── GET /runs/{runId} ─────────────────────────────────────────────────────────
 
-public record RunResponse(string Id, string WorkflowId, string Status, bool? Passed, JsonElement? Result);
+public record RunStepResult(string StepName, JsonElement Response);
+public record RunResult(bool Passed, RunStepResult[] Steps, string[] AssertionErrors);
+public record RunResponse(string Id, string WorkflowId, string Status, bool? Passed, RunResult? Result);
 
 public record GetRunRequest() : HttpWorkflowRequest<RunResponse>("getRun")
 {
