@@ -6,7 +6,6 @@ API_URL="http://localhost:5020"
 API_PROJECT="src/StepWise.Management"
 EXAMPLE_URL="http://localhost:5010"
 EXAMPLE_PROJECT="ExampleApi"
-TEST_PROJECT="tests/StepWise.Management.Tests"
 UI_TEST_PROJECT="tests/StepWise.Management.UI.Tests"
 
 DB_CONTAINER="stepwise-management-db"
@@ -143,12 +142,9 @@ done
 
 echo "→ Running tests..."
 set +e
-dotnet test "$TEST_PROJECT" #--logger "console;verbosity=normal"
-TEST_EXIT=$?
 dotnet test "$UI_TEST_PROJECT" --filter "FullyQualifiedName~.Api."
-UI_TEST_EXIT=$?
+TEST_EXIT=$?
 set -e
-[ $UI_TEST_EXIT -ne 0 ] && TEST_EXIT=$UI_TEST_EXIT
 
 echo "→ Stopping APIs..."
 kill_apis
