@@ -1,6 +1,65 @@
+using Walkthrough.Http;
 using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
+
+public class Catalog_18_CreateCatalog_EmptyName_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateCatalogCommand() with { Name = Static("") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostCatalogCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Catalog_19_CreateCatalog_DuplicateCreate_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        var create = await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+
+        await BuildAsync(new CreateCatalogCommand() with { Id = Static(create.Id) });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostCatalogCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Catalog_20_ArchiveCatalog_AlreadyArchived_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateCatalogCommand());
+        await BuildAsync(new ArchiveCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+
+        await BuildAsync(new ArchiveCatalogCommand());
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostCatalogCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Catalog_21_ArchiveCatalog_DoesNotExist_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new ArchiveCatalogCommand());
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostCatalogCommandsRequest() with
+        {
+            AggregateId = Static(Guid.NewGuid().ToString())
+        });
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
 
 public class Catalog_02_Create_NameAsserted : ManagementTestBase
 {

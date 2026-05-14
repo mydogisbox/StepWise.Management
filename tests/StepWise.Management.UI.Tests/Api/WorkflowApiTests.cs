@@ -1,3 +1,4 @@
+using Walkthrough.Http;
 using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
@@ -10,6 +11,148 @@ public abstract class WorkflowTestBase : CatalogStepTestBase
         var step = await BuildAsync(new UpsertStepCommand());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
         return step;
+    }
+}
+
+public class Workflow_19_CreateWorkflow_EmptyName_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand() with { Name = Static("") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_20_CreateWorkflow_DuplicateCreate_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+
+        await BuildAsync(new CreateWorkflowCommand() with { Id = Static(create.Id) });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_21_RenameWorkflow_EmptyName_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new RenameWorkflowCommand() with { Name = Static("") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_22_RenameWorkflow_DoesNotExist_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new RenameWorkflowCommand() with { Name = Static("New Name") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest() with
+        {
+            AggregateId = Static(Guid.NewGuid().ToString())
+        });
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_23_AppendStep_EmptyId_Returns422 : WorkflowTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupCatalogWithStepAsync();
+
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand() with { Id = Static("") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_24_InsertStepBefore_NotFound_Returns422 : WorkflowTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupCatalogWithStepAsync();
+
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new InsertStepBeforeCommand() with { BeforeId = Static("nonexistent-id") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_25_RemoveStep_NotFound_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new RemoveStepCommand() with { Id = Static("nonexistent-id") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_26_SetStepDefaults_NotFound_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new SetStepDefaultsCommand() with { Id = Static("nonexistent-id") });
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_27_ArchiveWorkflow_AlreadyArchived_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new ArchiveWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+
+        await BuildAsync(new ArchiveWorkflowCommand());
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
+    }
+}
+
+public class Workflow_28_UnarchiveWorkflow_NotArchived_Returns422 : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateWorkflowCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+
+        await BuildAsync(new UnarchiveWorkflowCommand());
+        var raw = (HttpRawResult)await ExecuteRawAsync(new PostWorkflowCommandsRequest());
+
+        Assert.Equal(422, raw.StatusCode);
     }
 }
 

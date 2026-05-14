@@ -242,6 +242,35 @@ public class Execution_21_InStockFilter : ExecutionTestBase
     }
 }
 
+public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:9999") });
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+        var step = await BuildAsync(new UpsertStepCommand());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
+        {
+            AggregateId = Static(step.Id),
+            Commands    = Static(new List<object> { step })
+        });
+
+        await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status != "pending");
+
+        Assert.Equal("failed", run.Status);
+        Assert.False(string.IsNullOrEmpty(run.Error));
+    }
+}
+
 public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
 {
     [Fact]
