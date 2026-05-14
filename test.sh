@@ -14,16 +14,29 @@ DB_NAME="stepwise_management"
 DB_USER="postgres"
 DB_PASS="postgres"
 
+MGMT_DLL="src/StepWise.Management/bin/Debug/net10.0/StepWise.Management.dll"
+EXAMPLE_DLL="ExampleApi/bin/Debug/net10.0/ExampleApi.dll"
+
 kill_apis() {
   pkill -f "project src/StepWise.Management" 2>/dev/null || true
   pkill -f "project ExampleApi" 2>/dev/null || true
 }
 
-# ── Database ─────────────────────────────────────────────────────────────────
+apis_up() {
+  curl -fs "$API_URL/api/ping" >/dev/null 2>&1 && \
+  curl -fs "$EXAMPLE_URL/products" >/dev/null 2>&1
+}
+
+needs_rebuild() {
+  local dll="$1" src_dir="$2"
+  [ ! -f "$dll" ] && return 0
+  [ -n "$(find "$src_dir" \( -name "*.cs" -o -name "*.csproj" \) -newer "$dll" -print -quit)" ]
+}
+
+# ── Database ──────────────────────────────────────────────────────────────────
 
 ensure_db() {
   if docker ps --filter "name=^${DB_CONTAINER}$" --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    echo "→ Database already running."
     return
   fi
 
@@ -49,16 +62,9 @@ ensure_db() {
     fi
     echo -n "."
     sleep 1
-    if [ $i -eq 30 ]; then
-      echo " timed out"
-      exit 1
-    fi
+    if [ $i -eq 30 ]; then echo " timed out"; exit 1; fi
   done
 }
-
-ensure_db
-
-# ── Migrations ────────────────────────────────────────────────────────────────
 
 run_migrations() {
   docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -q -c "
@@ -67,16 +73,15 @@ run_migrations() {
       applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );"
 
-  local migrations_dir
+  local migrations_dir applied
   migrations_dir="$(dirname "$0")/src/StepWise.Management/Migrations"
+  applied=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT version FROM schema_migrations;" | tr -d '[:space:]')
 
   for sql_file in "$migrations_dir"/*.sql; do
     version=$(basename "$sql_file")
-    already_applied=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
-      "SELECT 1 FROM schema_migrations WHERE version = '$version';" | tr -d '[:space:]')
-
-    if [ "$already_applied" = "1" ]; then
-      echo "  ✓ $version (already applied)"
+    if echo "$applied" | grep -qF "$version"; then
+      echo "  ✓ $version"
     else
       echo "  → Applying $version..."
       docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -q < "$sql_file"
@@ -86,67 +91,70 @@ run_migrations() {
   done
 }
 
-# ── Reset ─────────────────────────────────────────────────────────────────────
+wait_for() {
+  local name="$1" url="$2"
+  echo -n "  Waiting for $name"
+  for i in {1..30}; do
+    if curl -fs "$url" >/dev/null; then
+      echo " ready"
+      return 0
+    fi
+    echo -n "."
+    sleep 1
+    if [ $i -eq 30 ]; then echo " timed out"; return 1; fi
+  done
+}
 
-echo "→ Stopping any running APIs..."
-kill_apis
+# ── Build ─────────────────────────────────────────────────────────────────────
 
-echo "→ Resetting database..."
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c \
-  "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();"
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "DROP DATABASE IF EXISTS $DB_NAME;"
-docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "CREATE DATABASE $DB_NAME;"
+if needs_rebuild "$MGMT_DLL"    "$API_PROJECT" || \
+   needs_rebuild "$EXAMPLE_DLL" "$EXAMPLE_PROJECT"; then
+  echo "→ Building..."
+  dotnet build StepWise.Management.sln -nologo -v q
+  REBUILT=true
+else
+  echo "→ No source changes — skipping build."
+  REBUILT=false
+fi
 
-# ── Migrations ────────────────────────────────────────────────────────────────
+# ── Database + APIs ───────────────────────────────────────────────────────────
 
-echo "→ Running migrations..."
-run_migrations
+ensure_db
 
-# ── API ───────────────────────────────────────────────────────────────────────
+if apis_up && [ "$REBUILT" = false ]; then
+  echo "→ APIs already running and up to date."
+  echo "→ Running migrations..."
+  run_migrations
+else
+  echo "→ Stopping any running APIs..."
+  kill_apis
 
-echo "→ Starting API..."
-dotnet run --project "$API_PROJECT" >test-api.log 2>&1 &
+  echo "→ Resetting database..."
+  docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c \
+    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();"
+  docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "DROP DATABASE IF EXISTS $DB_NAME;"
+  docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -q -c "CREATE DATABASE $DB_NAME;"
 
-echo -n "  Waiting for API"
-for i in {1..30}; do
-  if curl -fs "$API_URL/api/ping" >/dev/null; then
-    echo " ready"
-    break
-  fi
-  echo -n "."
-  sleep 1
-  if [ $i -eq 30 ]; then
-    echo " timed out"
-    exit 1
-  fi
-done
+  echo "→ Running migrations..."
+  run_migrations
 
-echo "→ Starting Example API..."
-dotnet run --project "$EXAMPLE_PROJECT" --urls "$EXAMPLE_URL" >test-example.log 2>&1 &
+  echo "→ Starting APIs..."
+  dotnet run --project "$API_PROJECT"     --no-build >test-api.log     2>&1 &
+  dotnet run --project "$EXAMPLE_PROJECT" --no-build --urls "$EXAMPLE_URL" >test-example.log 2>&1 &
 
-echo -n "  Waiting for Example API"
-for i in {1..30}; do
-  if curl -fs "$EXAMPLE_URL/products" >/dev/null; then
-    echo " ready"
-    break
-  fi
-  echo -n "."
-  sleep 1
-  if [ $i -eq 30 ]; then
-    echo " timed out"
-    exit 1
-  fi
-done
+  wait_for "API"         "$API_URL/api/ping"    &
+  W1=$!
+  wait_for "Example API" "$EXAMPLE_URL/products" &
+  W2=$!
+  wait $W1 $W2
+fi
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 echo "→ Running tests..."
 set +e
-dotnet test "$UI_TEST_PROJECT" --filter "FullyQualifiedName~.Api."
+dotnet test "$UI_TEST_PROJECT" --no-build --filter "FullyQualifiedName~.Api."
 TEST_EXIT=$?
 set -e
-
-echo "→ Stopping APIs..."
-kill_apis
 
 exit $TEST_EXIT

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Off-limits dependencies
 
-Do **not** edit files in `../Walkthrough` or `../CommandFramework`. These are sibling repos treated as read-only dependencies here. Propose changes as suggestions only and wait for explicit instruction before touching those paths.
+Do **not** edit files in `../CommandFramework`. This is a sibling repo treated as a read-only dependency here. Propose changes as suggestions only and wait for explicit instruction before touching those paths.
+
+Walkthrough is a NuGet package (`Walkthrough.Core`, `Walkthrough.Http`, `Walkthrough.Json` from the local feed). Its docs are at `tests/StepWise.Management.UI.Tests/.claude/walkthrough/CLAUDE.md`, `tests/StepWise.Management.UI.Tests/.claude/walkthrough/csharp-style.md`, and `tests/StepWise.Management.UI.Tests/.claude/walkthrough/json-style.md`.
 
 ---
 
@@ -34,12 +36,11 @@ Tests are integration tests. Use `test.sh` — it handles the full lifecycle (DB
 
 ### Sibling dependencies
 
-This project references two sibling repos by path (not NuGet):
+This project references one sibling repo by path (not NuGet):
 
 - `../CommandFramework` — event-sourced aggregate framework
-- `../Walkthrough` — JSON workflow test runner
 
-Both must be present alongside this repo. Do not add these as packages.
+Walkthrough is consumed as a NuGet package from the local feed at `/Users/michaelciccotti/Documents/code/Walkthrough/nupkgs`.
 
 ### Domain aggregates
 
@@ -103,7 +104,7 @@ Three reactions maintain this table across the run lifecycle:
 
 Tests live in `tests/StepWise.Management.Tests/WorkflowTests/`. They use `Walkthrough.Json.JsonWorkflowTestBase`.
 
-**For the full JSON workflow format** — step definitions, field value types (`static`, `from`, `generated`, `template`), assertion types, path syntax, `poll`, `captureAs`, `headers`, per-invocation overrides, etc. — read `../Walkthrough/CLAUDE.md`. Everything below is specific to this project.
+**For the full JSON workflow format** — step definitions, field value types (`static`, `from`, `generated`, `template`), assertion types, path syntax, `poll`, `captureAs`, `headers`, per-invocation overrides, etc. — read `tests/StepWise.Management.UI.Tests/.claude/walkthrough/CLAUDE.md`. Everything below is specific to this project.
 
 ### File layout
 
@@ -183,7 +184,7 @@ By default, any non-2xx response throws. Use `captureFullResponseAs` to capture 
 { "step": "postCatalogStepCommands", "captureFullResponseAs": "errorResponse" }
 ```
 
-Assertions reference `$errorResponse.status` and `$errorResponse.body.*`. This feature is used in existing management tests and works, but it does **not appear in `../Walkthrough/CLAUDE.md`** — its support in the library is undocumented. `captureFullResponseAs` and `captureRequestAs` can be combined on the same invocation.
+Assertions reference `$errorResponse.status` and `$errorResponse.body.*`. This feature is used in existing management tests and works, but it does **not appear in `tests/StepWise.Management.UI.Tests/.claude/walkthrough/CLAUDE.md`** — its support in the library is undocumented. `captureFullResponseAs` and `captureRequestAs` can be combined on the same invocation.
 
 ### Domain event `Id` convention
 

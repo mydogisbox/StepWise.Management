@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../Walkthrough/src/Walkthrough.Core/Walkthrough.Core.csproj" />
-    <ProjectReference Include="../../../Walkthrough/src/Walkthrough.Http/Walkthrough.Http.csproj" />
+    <PackageReference Include="Walkthrough.Core" Version="0.2.0" />
+    <PackageReference Include="Walkthrough.Http" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup>
