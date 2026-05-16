@@ -64,8 +64,8 @@ public class Execution_16_RunWorkflow : ExecutionTestBase
         var (adminStep, _) = await SetupExampleCatalogAsync();
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        var step2 = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
@@ -75,9 +75,9 @@ public class Execution_16_RunWorkflow : ExecutionTestBase
         Assert.Equal(2, result.Steps.Length);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "admin-create-product");
         Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, step2.Id);
+        var s2 = GetStep(result, "list-products");
         Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
     }
 }
@@ -90,11 +90,11 @@ public class Execution_17_CrossReference : ExecutionTestBase
         var (adminStep, _) = await SetupExampleCatalogAsync();
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        var step2 = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand());
         await BuildAsync(new AddAssertionCommand() with
         {
-            Assertion = Static<object>(new { equal = new object[] { "$" + step2.Id + ".totalCount", "999" } })
+            Assertion = Static<object>(new { equal = new object[] { "$list-products.totalCount", "999" } })
         });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
@@ -105,9 +105,9 @@ public class Execution_17_CrossReference : ExecutionTestBase
         Assert.Equal(2, result.Steps.Length);
         Assert.Single(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "admin-create-product");
         Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, step2.Id);
+        var s2 = GetStep(result, "list-products");
         Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
     }
 }
@@ -120,11 +120,11 @@ public class Execution_18_StoredAssertion : ExecutionTestBase
         var (adminStep, _) = await SetupExampleCatalogAsync();
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        var step2 = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand());
         await BuildAsync(new AddAssertionCommand() with
         {
-            Assertion = Static<object>(new { notEmpty = step2.Id })
+            Assertion = Static<object>(new { notEmpty = "list-products" })
         });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
@@ -135,9 +135,9 @@ public class Execution_18_StoredAssertion : ExecutionTestBase
         Assert.Equal(2, result.Steps.Length);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "admin-create-product");
         Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, step2.Id);
+        var s2 = GetStep(result, "list-products");
         Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
     }
 }
@@ -150,8 +150,8 @@ public class Execution_19_RunResultStoredAsObject : ExecutionTestBase
         var (adminStep, _) = await SetupExampleCatalogAsync();
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        var step2 = await BuildAsync(new AppendStepCommand());
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
@@ -162,9 +162,9 @@ public class Execution_19_RunResultStoredAsObject : ExecutionTestBase
         Assert.Equal(2, result.Steps.Length);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "admin-create-product");
         Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, step2.Id);
+        var s2 = GetStep(result, "list-products");
         Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
     }
 }
@@ -189,8 +189,8 @@ public class Execution_20_ProductCategoryFilter : ExecutionTestBase
         });
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        var step2 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listElectronicsStep.Id) });
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listElectronicsStep.Id) });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
@@ -200,9 +200,9 @@ public class Execution_20_ProductCategoryFilter : ExecutionTestBase
         Assert.Equal(2, result.Steps.Length);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "admin-create-product");
         Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, step2.Id);
+        var s2 = GetStep(result, "list-electronics");
         Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
     }
 }
@@ -227,7 +227,7 @@ public class Execution_21_InStockFilter : ExecutionTestBase
         });
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listInStockStep.Id) });
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listInStockStep.Id) });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
@@ -237,7 +237,7 @@ public class Execution_21_InStockFilter : ExecutionTestBase
         Assert.Single(result.Steps);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "list-in-stock");
         Assert.NotEqual(JsonValueKind.Null, s1.Response.ValueKind);
     }
 }
@@ -271,35 +271,21 @@ public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
     }
 }
 
-public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
+public class Execution_24_ReusedExampleWorkflowAssertion : ExecutionTestBase
 {
+    // Mirrors example-01-list-products.workflow.json: { "notEmpty": "$listProducts" }
+    // Uses kebab-case step names registered by SetupExampleCatalogAsync
     [Fact]
     public async Task Test()
     {
-        await SetupExampleCatalogAsync();
-
-        var validateSave10Step = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("validate-save10"),
-            Method   = Static("POST"),
-            Path     = Static("/vouchers/validate"),
-            Defaults = Static<object?>(new Dictionary<string, object?> { ["code"] = "SAVE10" })
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(validateSave10Step.Id),
-            Commands    = Static(new List<object> { validateSave10Step })
-        });
+        var (adminStep, listStep) = await SetupExampleCatalogAsync();
 
         await BuildAsync(new CreateWorkflowCommand());
-        var step1 = await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(validateSave10Step.Id) });
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listStep.Id) });
         await BuildAsync(new AddAssertionCommand() with
         {
-            Assertion = Static<object>(new { equal = new object[] { "$" + step1.Id + ".valid", "true" } })
-        });
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { equal = new object[] { "$" + step1.Id + ".discountPct", "10" } })
+            Assertion = Static<object>(new { notEmpty = "$list-products" })
         });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
@@ -307,10 +293,22 @@ public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
 
         var result = run.Result!;
         Assert.True(result.Passed);
+        Assert.Equal(2, result.Steps.Length);
+        Assert.Empty(result.AssertionErrors);
+    }
+}
+
+public class Execution_22_VoucherValidationWithAssertions : VoucherValidationTestBase
+{
+    protected override Task AssertAsync(RunResponse run)
+    {
+        var result = run.Result!;
+        Assert.True(result.Passed);
         Assert.Single(result.Steps);
         Assert.Empty(result.AssertionErrors);
 
-        var s1 = GetStep(result, step1.Id);
+        var s1 = GetStep(result, "validate-save10");
         Assert.NotEqual(JsonValueKind.Undefined, s1.Response.GetProperty("valid").ValueKind);
+        return Task.CompletedTask;
     }
 }

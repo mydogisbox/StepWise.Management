@@ -187,6 +187,7 @@ public class WorkflowExecutionService : BackgroundService
         var contracts = new Dictionary<string, Walkthrough.Json.StepContractDefinition>(StringComparer.OrdinalIgnoreCase);
         var targetBaseUrls = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var targetSteps = new Dictionary<string, Dictionary<string, Walkthrough.Json.TargetStepDefinition>>(StringComparer.OrdinalIgnoreCase);
+        var stepNames = new Dictionary<string, string>(); // workflowStep.Id → catalogStep.StepName
 
         foreach (var workflowStep in workflowState.Steps)
         {
@@ -199,6 +200,8 @@ public class WorkflowExecutionService : BackgroundService
                 CatalogStepAggregate.Apply);
             if (catalogStep == null)
                 throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' could not be folded.");
+
+            stepNames[workflowStep.Id] = catalogStep.StepName;
 
             var targetEvents = await _eventStore.LoadAsync($"targets/{catalogStep.TargetId}");
             if (targetEvents.Count > 0 && !targetBaseUrls.ContainsKey(catalogStep.TargetId))
@@ -264,7 +267,8 @@ public class WorkflowExecutionService : BackgroundService
         var workflowDef = new Walkthrough.Json.WorkflowDefinition(
             Name: workflowState.Name,
             Steps: workflowState.Steps
-                .Select(s => new Walkthrough.Json.StepInvocation { Step = s.Id })
+                // CaptureAs = step name so assertion paths like "$list-products.total" resolve correctly
+                .Select(s => new Walkthrough.Json.StepInvocation { Step = s.Id, CaptureAs = stepNames[s.Id] })
                 .ToList(),
             Assertions: workflowState.Assertions.Count > 0 ? workflowState.Assertions : null);
 

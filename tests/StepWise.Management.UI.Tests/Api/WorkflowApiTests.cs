@@ -3,14 +3,18 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public abstract class WorkflowTestBase : CatalogStepTestBase
+public abstract class WorkflowTestBase : ManagementTestBase
 {
-    protected async Task<UpsertStepOutput> SetupCatalogWithStepAsync()
+    protected async Task SetupCatalogWithStepAsync()
     {
-        await SetupAsync();
-        var step = await BuildAsync(new UpsertStepCommand());
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+        await BuildAsync(new UpsertStepCommand());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
-        return step;
     }
 }
 

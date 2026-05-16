@@ -16,6 +16,7 @@ DB_PASS="postgres"
 
 MGMT_DLL="src/StepWise.Management/bin/Debug/net10.0/StepWise.Management.dll"
 EXAMPLE_DLL="ExampleApi/bin/Debug/net10.0/ExampleApi.dll"
+TEST_DLL="tests/StepWise.Management.UI.Tests/bin/Debug/net10.0/StepWise.Management.UI.Tests.dll"
 
 kill_apis() {
   pkill -f "project src/StepWise.Management" 2>/dev/null || true
@@ -112,6 +113,10 @@ if needs_rebuild "$MGMT_DLL"    "$API_PROJECT" || \
   echo "→ Building..."
   dotnet build StepWise.Management.sln -nologo -v q
   REBUILT=true
+elif needs_rebuild "$TEST_DLL" "$UI_TEST_PROJECT"; then
+  echo "→ Test sources changed — rebuilding tests only..."
+  dotnet build "$UI_TEST_PROJECT" -nologo -v q
+  REBUILT=false
 else
   echo "→ No source changes — skipping build."
   REBUILT=false

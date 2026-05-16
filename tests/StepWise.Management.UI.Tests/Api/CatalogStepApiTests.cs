@@ -4,28 +4,18 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public abstract class CatalogStepTestBase : ManagementTestBase
-{
-    protected async Task<(CreateTargetOutput Target, TargetResponse[] Targets, CreateCatalogOutput Catalog)> SetupAsync()
-    {
-        var target  = await BuildAsync(new CreateTargetCommand());
-        await ExecuteAsync(new PostTargetCommandsRequest());
-        var targets = await ExecuteAsync(new ListTargetsRequest());
-
-        var catalog = await BuildAsync(new CreateCatalogCommand());
-        await ExecuteAsync(new PostCatalogCommandsRequest());
-
-        return (target, targets, catalog);
-    }
-}
-
-public class Catalog_03_AddStep_AllFieldsCorrect : CatalogStepTestBase
+public class Catalog_03_AddStep_AllFieldsCorrect : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        var (target, targets, catalog) = await SetupAsync();
-        var catalogs = await ExecuteAsync(new ListCatalogsRequest());
+        var target = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        var catalog = await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
+        await ExecuteAsync(new ListCatalogsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -37,21 +27,26 @@ public class Catalog_03_AddStep_AllFieldsCorrect : CatalogStepTestBase
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
         var step = await ExecuteAsync(new GetCatalogStepRequest());
 
-        Assert.Equal("getStatus",                                       step.StepName);
-        Assert.Equal(targets.Single(t => t.Name == target.Name).Id,    step.TargetId);
-        Assert.Equal(catalogs.Single(c => c.Name == catalog.Name).Id,  step.CatalogId);
-        Assert.Equal("GET",                                             step.Method);
-        Assert.Equal("/api/status",                                     step.Path);
-        Assert.Equal("value1",                                          step.Defaults?.GetProperty("param").GetString());
+        Assert.Equal("getStatus",   step.StepName);
+        Assert.Equal(target.Id,     step.TargetId);
+        Assert.Equal(catalog.Id,    step.CatalogId);
+        Assert.Equal("GET",         step.Method);
+        Assert.Equal("/api/status", step.Path);
+        Assert.Equal("value1",      step.Defaults?.GetProperty("param").GetString());
     }
 }
 
-public class Catalog_04_UpsertStep_UpdatesFields : CatalogStepTestBase
+public class Catalog_04_UpsertStep_UpdatesFields : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        var (target, _, _) = await SetupAsync();
+        var target = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -82,12 +77,17 @@ public class Catalog_04_UpsertStep_UpdatesFields : CatalogStepTestBase
     }
 }
 
-public class Catalog_05_ArchiveStep_IsArchivedTrue : CatalogStepTestBase
+public class Catalog_05_ArchiveStep_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
     public async Task Test()
-    {
-        await SetupAsync();
+    {   
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand());
         await BuildAsync(new ArchiveStepCommand());
@@ -98,12 +98,17 @@ public class Catalog_05_ArchiveStep_IsArchivedTrue : CatalogStepTestBase
     }
 }
 
-public class Catalog_06_ArchiveStep_ExcludedFromList : CatalogStepTestBase
+public class Catalog_06_ArchiveStep_ExcludedFromList : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand());
         await BuildAsync(new ArchiveStepCommand());
@@ -114,12 +119,17 @@ public class Catalog_06_ArchiveStep_ExcludedFromList : CatalogStepTestBase
     }
 }
 
-public class Catalog_07_ArchiveStep_IncludedWhenShowArchived : CatalogStepTestBase
+public class Catalog_07_ArchiveStep_IncludedWhenShowArchived : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with { StepName = Static("archivedStep") });
         await BuildAsync(new ArchiveStepCommand());
@@ -149,12 +159,17 @@ public class Catalog_08_ErrorCapturesStatus : ManagementTestBase
     }
 }
 
-public class Catalog_09_SuccessCapturesStatus : CatalogStepTestBase
+public class Catalog_09_SuccessCapturesStatus : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand());
         var raw  = (HttpRawResult)await ExecuteRawAsync(new PostCatalogStepCommandsRequest());
@@ -165,12 +180,17 @@ public class Catalog_09_SuccessCapturesStatus : CatalogStepTestBase
     }
 }
 
-public class Catalog_14_StepShapes_StoredAndReturned : CatalogStepTestBase
+public class Catalog_14_StepShapes_StoredAndReturned : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -185,12 +205,17 @@ public class Catalog_14_StepShapes_StoredAndReturned : CatalogStepTestBase
     }
 }
 
-public class Catalog_15_StepPolling_StoredAndReturned : CatalogStepTestBase
+public class Catalog_15_StepPolling_StoredAndReturned : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -207,12 +232,17 @@ public class Catalog_15_StepPolling_StoredAndReturned : CatalogStepTestBase
     }
 }
 
-public class Catalog_13_UnarchiveStep_IsArchivedFalse : CatalogStepTestBase
+public class Catalog_13_UnarchiveStep_IsArchivedFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupAsync();
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await ExecuteAsync(new ListTargetsRequest());
+
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand());
         await BuildAsync(new ArchiveStepCommand());
