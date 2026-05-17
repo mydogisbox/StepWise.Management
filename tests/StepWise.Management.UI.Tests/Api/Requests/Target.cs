@@ -37,19 +37,20 @@ public record UpdateTargetCommand() : TargetCommand<UpdateTargetOutput>
 
 public record CommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostTargetCommandsRequest() : HttpWorkflowRequest<CommandSuccess[]>("postTargetCommands")
+public record PostTargetCommandsRequest() : WorkflowRequest<CommandSuccess[], PostTargetCommandsRequest>, IWorkflowRequest
 {
+    public static string StepName => "postTargetCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
         ctx.HasCapture("CreateTargetCommand") ? ctx.Get<CreateTargetOutput>("CreateTargetCommand").Id :
         ctx.HasCapture("getTarget")           ? ctx.Get<TargetResponse>("getTarget").Id :
                                                 ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
-    public IFieldValue<List<object>> Commands    { get; init; } = From(ctx => ctx.GetAccumulated<TargetCommand>());
+    public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<TargetCommand>());
 }
 
-public class PostTargetCommandsStep : HttpStep<PostTargetCommandsRequest, CommandSuccess[]>
+public class PostTargetCommandsStep : HttpStep<PostTargetCommandsRequest, CommandSuccess[], PostTargetCommandsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Post;
-    public override string     Path   => "/targets/commands";
+    public static HttpMethod Method => HttpMethod.Post;
+    public static string     Path   => "/targets/commands";
 
     private static string CommandType(object cmd) => cmd switch
     {
@@ -77,29 +78,31 @@ public class PostTargetCommandsStep : HttpStep<PostTargetCommandsRequest, Comman
 
 public record TargetResponse(string Id, string Name, string BaseUrl, bool IsArchived, string? CreatedAt);
 
-public record GetTargetRequest() : HttpWorkflowRequest<TargetResponse>("getTarget")
+public record GetTargetRequest() : WorkflowRequest<TargetResponse, GetTargetRequest>, IWorkflowRequest
 {
+    public static string StepName => "getTarget";
     public IFieldValue<string> Id { get; init; } =
         From(ctx => ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
 }
 
-public class GetTargetStep : HttpStep<GetTargetRequest, TargetResponse>
+public class GetTargetStep : HttpStep<GetTargetRequest, TargetResponse, GetTargetStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/targets/{id}";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/targets/{id}";
 }
 
 // ── GET /targets ───────────────────────────────────────────────────────────────
 
-public record ListTargetsRequest() : HttpWorkflowRequest<TargetResponse[]>("listTargets")
+public record ListTargetsRequest() : WorkflowRequest<TargetResponse[], ListTargetsRequest>, IWorkflowRequest
 {
+    public static string StepName => "listTargets";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
 }
 
-public class ListTargetsStep : HttpStep<ListTargetsRequest, TargetResponse[]>
+public class ListTargetsStep : HttpStep<ListTargetsRequest, TargetResponse[], ListTargetsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/targets";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/targets";
 
     public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
     {

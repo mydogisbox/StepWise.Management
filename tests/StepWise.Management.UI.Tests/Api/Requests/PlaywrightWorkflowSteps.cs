@@ -1,38 +1,39 @@
 using Microsoft.Playwright;
 using Walkthrough.Core;
+using Walkthrough.Http;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class PlaywrightTarget : ITarget
+public class PlaywrightTarget : Target<PlaywrightTarget, PlaywrightStep>, ITarget
 {
     private readonly IPage _page;
-    private readonly Dictionary<Type, PlaywrightStep> _steps = new();
 
     public PlaywrightTarget(IPage page) => _page = page;
 
-    public PlaywrightTarget Register<TRequest>(PlaywrightStep step)
+    Task<TResponse> ITarget.ExecuteAsync<TResponse>(WorkflowRequest<TResponse> request, Dictionary<string, object?> resolvedFields, WorkflowContext context)
     {
-        _steps[typeof(TRequest)] = step;
-        return this;
-    }
-
-    public bool CanHandle(Type requestType) => _steps.ContainsKey(requestType);
-
-    public async Task<TResponse> ExecuteAsync<TResponse>(WorkflowRequest<TResponse> request, WorkflowContext context)
-    {
-        var step = _steps[request.GetType()];
-        return (TResponse)(await step.ExecuteAsync(_page, context))!;
+        var step = GetStep(request);
+        return step.RunAsync<TResponse>(_page, resolvedFields, context);
     }
 }
 
-public abstract class PlaywrightStep
+public abstract class PlaywrightStep : IStep
 {
-    public abstract Task<object?> ExecuteAsync(IPage page, WorkflowContext context);
+    public abstract Type RequestType { get; }
+    public abstract Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context);
+
+    public async Task<TResponse> RunAsync<TResponse>(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
+        => (TResponse)(await ExecuteAsync(page, resolvedFields, context))!;
 }
 
-public class PlaywrightListWorkflowsStep : PlaywrightStep
+public abstract class PlaywrightStep<TRequest> : PlaywrightStep
 {
-    public override async Task<object?> ExecuteAsync(IPage page, WorkflowContext context)
+    public override Type RequestType => typeof(TRequest);
+}
+
+public class PlaywrightListWorkflowsStep : PlaywrightStep<ListWorkflowsRequest>
+{
+    public override async Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
     {
         await page.GotoAsync("http://localhost:5020/index.html");
         await page.GetByRole(AriaRole.Button, new() { Name = "Workflows" }).ClickAsync();
@@ -42,26 +43,28 @@ public class PlaywrightListWorkflowsStep : PlaywrightStep
     }
 }
 
-public class PlaywrightRunWorkflowStep : PlaywrightStep
+public class PlaywrightRunWorkflowStep : PlaywrightStep<RunWorkflowRequest>
 {
-    public override async Task<object?> ExecuteAsync(IPage page, WorkflowContext context)
+    public override async Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
     {
-        var name = context.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Name;
+        var name = (string)resolvedFields["WorkflowName"]!;
         var row = page.Locator("tr").Filter(new LocatorFilterOptions { HasText = name });
         await row.GetByText("Run").ClickAsync();
         return new RunWorkflowResponse("");
     }
 }
 
-public class PlaywrightGetRunStep : PlaywrightStep
+public class PlaywrightGetRunStep : PlaywrightStep<GetRunRequest>
 {
-    public override async Task<object?> ExecuteAsync(IPage page, WorkflowContext context)
+    public override async Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
     {
         var badge = page.Locator("#run-result-badge");
-        await Assertions.Expect(badge).ToHaveTextAsync(
-            new System.Text.RegularExpressions.Regex("PASS|FAIL"),
-            new LocatorAssertionsToHaveTextOptions { Timeout = 15000 });
-        var text = await badge.InnerTextAsync();
-        return new RunResponse("", "", "completed", text.Trim() == "PASS", null, null);
+        if (await badge.IsVisibleAsync())
+        {
+            var text = await badge.InnerTextAsync();
+            if (text.Trim() is "PASS" or "FAIL")
+                return new RunResponse("", "", "completed", text.Trim() == "PASS", null, null);
+        }
+        return new RunResponse("", "", "pending", null, null, null);
     }
 }

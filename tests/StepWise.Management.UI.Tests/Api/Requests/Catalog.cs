@@ -36,18 +36,19 @@ public record UnarchiveCatalogCommand() : CatalogCommand<UnarchiveCatalogOutput>
 
 public record CatalogCommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostCatalogCommandsRequest() : HttpWorkflowRequest<CatalogCommandSuccess[]>("postCatalogCommands")
+public record PostCatalogCommandsRequest() : WorkflowRequest<CatalogCommandSuccess[], PostCatalogCommandsRequest>, IWorkflowRequest
 {
+    public static string StepName => "postCatalogCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
         ctx.HasCapture("CreateCatalogCommand") ? ctx.Get<CreateCatalogOutput>("CreateCatalogCommand").Id :
                                                  ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<CatalogCommand>());
 }
 
-public class PostCatalogCommandsStep : HttpStep<PostCatalogCommandsRequest, CatalogCommandSuccess[]>
+public class PostCatalogCommandsStep : HttpStep<PostCatalogCommandsRequest, CatalogCommandSuccess[], PostCatalogCommandsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Post;
-    public override string     Path   => "/catalogs/commands";
+    public static HttpMethod Method => HttpMethod.Post;
+    public static string     Path   => "/catalogs/commands";
 
     private static string CommandType(object cmd) => cmd switch
     {
@@ -75,29 +76,31 @@ public class PostCatalogCommandsStep : HttpStep<PostCatalogCommandsRequest, Cata
 
 public record CatalogResponse(string Id, string Name, string? Description, bool IsArchived, string? CreatedAt);
 
-public record GetCatalogRequest() : HttpWorkflowRequest<CatalogResponse>("getCatalog")
+public record GetCatalogRequest() : WorkflowRequest<CatalogResponse, GetCatalogRequest>, IWorkflowRequest
 {
+    public static string StepName => "getCatalog";
     public IFieldValue<string> Id { get; init; } =
         From(ctx => ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
 }
 
-public class GetCatalogStep : HttpStep<GetCatalogRequest, CatalogResponse>
+public class GetCatalogStep : HttpStep<GetCatalogRequest, CatalogResponse, GetCatalogStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/catalogs/{id}";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/catalogs/{id}";
 }
 
 // ── GET /catalogs ─────────────────────────────────────────────────────────────
 
-public record ListCatalogsRequest() : HttpWorkflowRequest<CatalogResponse[]>("listCatalogs")
+public record ListCatalogsRequest() : WorkflowRequest<CatalogResponse[], ListCatalogsRequest>, IWorkflowRequest
 {
+    public static string StepName => "listCatalogs";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
 }
 
-public class ListCatalogsStep : HttpStep<ListCatalogsRequest, CatalogResponse[]>
+public class ListCatalogsStep : HttpStep<ListCatalogsRequest, CatalogResponse[], ListCatalogsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/catalogs";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/catalogs";
 
     public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
     {

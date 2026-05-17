@@ -80,18 +80,19 @@ public record UpdateDescriptionCommand() : WorkflowCommand<UpdateDescriptionOutp
 
 public record WorkflowCommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostWorkflowCommandsRequest() : HttpWorkflowRequest<WorkflowCommandSuccess[]>("postWorkflowCommands")
+public record PostWorkflowCommandsRequest() : WorkflowRequest<WorkflowCommandSuccess[], PostWorkflowCommandsRequest>, IWorkflowRequest
 {
+    public static string StepName => "postWorkflowCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
         ctx.HasCapture("CreateWorkflowCommand") ? ctx.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Id :
                                                   ctx.Get<WorkflowCommandSuccess[]>("postWorkflowCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<WorkflowCommand>());
 }
 
-public class PostWorkflowCommandsStep : HttpStep<PostWorkflowCommandsRequest, WorkflowCommandSuccess[]>
+public class PostWorkflowCommandsStep : HttpStep<PostWorkflowCommandsRequest, WorkflowCommandSuccess[], PostWorkflowCommandsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Post;
-    public override string     Path   => "/workflows/commands";
+    public static HttpMethod Method => HttpMethod.Post;
+    public static string     Path   => "/workflows/commands";
 
     private static string CommandType(object cmd) => cmd switch
     {
@@ -126,31 +127,33 @@ public class PostWorkflowCommandsStep : HttpStep<PostWorkflowCommandsRequest, Wo
 public record WorkflowStepResponse(string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults);
 public record WorkflowResponse(string Id, string Name, string? Description, bool IsArchived, WorkflowStepResponse[] Steps, JsonElement[] Assertions);
 
-public record GetWorkflowRequest() : HttpWorkflowRequest<WorkflowResponse>("getWorkflow")
+public record GetWorkflowRequest() : WorkflowRequest<WorkflowResponse, GetWorkflowRequest>, IWorkflowRequest
 {
+    public static string StepName => "getWorkflow";
     public IFieldValue<string> Id { get; init; } =
         From(ctx => ctx.Get<WorkflowCommandSuccess[]>("postWorkflowCommands")[0].AggregateId);
 }
 
-public class GetWorkflowStep : HttpStep<GetWorkflowRequest, WorkflowResponse>
+public class GetWorkflowStep : HttpStep<GetWorkflowRequest, WorkflowResponse, GetWorkflowStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/workflows/{id}";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/workflows/{id}";
 }
 
 // ── GET /workflows ────────────────────────────────────────────────────────────
 
 public record WorkflowSummaryResponse(string Id, string Name, bool IsArchived);
 
-public record ListWorkflowsRequest() : HttpWorkflowRequest<WorkflowSummaryResponse[]>("listWorkflows")
+public record ListWorkflowsRequest() : WorkflowRequest<WorkflowSummaryResponse[], ListWorkflowsRequest>, IWorkflowRequest
 {
+    public static string StepName => "listWorkflows";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
 }
 
-public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, WorkflowSummaryResponse[]>
+public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, WorkflowSummaryResponse[], ListWorkflowsStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/workflows";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/workflows";
 
     public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
     {
@@ -162,16 +165,18 @@ public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, WorkflowSummaryR
 
 public record RunWorkflowResponse(string RunId);
 
-public record RunWorkflowRequest() : HttpWorkflowRequest<RunWorkflowResponse>("runWorkflow")
+public record RunWorkflowRequest() : WorkflowRequest<RunWorkflowResponse, RunWorkflowRequest>, IWorkflowRequest
 {
-    public IFieldValue<string> WorkflowId { get; init; } = From(ctx => ctx.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Id);
-    public IFieldValue<string> RunId      { get; init; } = Generated(() => Guid.NewGuid().ToString());
+    public static string StepName => "runWorkflow";
+    public IFieldValue<string> WorkflowId   { get; init; } = From(ctx => ctx.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Id);
+    public IFieldValue<string> WorkflowName { get; init; } = From(ctx => ctx.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Name);
+    public IFieldValue<string> RunId        { get; init; } = Generated(() => Guid.NewGuid().ToString());
 }
 
-public class RunWorkflowStep : HttpStep<RunWorkflowRequest, RunWorkflowResponse>
+public class RunWorkflowStep : HttpStep<RunWorkflowRequest, RunWorkflowResponse, RunWorkflowStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Post;
-    public override string     Path   => "/api/workflows/{workflowId}/run";
+    public static HttpMethod Method => HttpMethod.Post;
+    public static string     Path   => "/api/workflows/{workflowId}/run";
 }
 
 // ── GET /runs/{runId} ─────────────────────────────────────────────────────────
@@ -180,25 +185,29 @@ public record RunStepResult(string StepName, JsonElement Response);
 public record RunResult(bool Passed, RunStepResult[] Steps, string[] AssertionErrors);
 public record RunResponse(string Id, string WorkflowId, string Status, bool? Passed, RunResult? Result, string? Error);
 
-public record GetRunRequest() : HttpWorkflowRequest<RunResponse>("getRun")
+public record GetRunRequest() : WorkflowRequest<RunResponse, GetRunRequest>, IWorkflowRequest
 {
+    public static string StepName => "getRun";
     public IFieldValue<string> RunId { get; init; } = From(ctx => ctx.Get<RunWorkflowResponse>("runWorkflow").RunId);
 }
 
-public class GetRunStep : HttpStep<GetRunRequest, RunResponse>
+public class GetRunStep : HttpStep<GetRunRequest, RunResponse, GetRunStep>, IHttpStep
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/runs/{runId}";
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/runs/{runId}";
 }
 
 // ── GET /runs ─────────────────────────────────────────────────────────────────
 
 public record RunSummaryResponse(string Id, string WorkflowId, string? WorkflowName, bool? Passed, int? DurationMs);
 
-public record ListRunsRequest() : HttpWorkflowRequest<RunSummaryResponse[]>("listRuns");
-
-public class ListRunsStep : HttpStep<ListRunsRequest, RunSummaryResponse[]>
+public record ListRunsRequest() : WorkflowRequest<RunSummaryResponse[], ListRunsRequest>, IWorkflowRequest
 {
-    public override HttpMethod Method => HttpMethod.Get;
-    public override string     Path   => "/runs";
+    public static string StepName => "listRuns";
+}
+
+public class ListRunsStep : HttpStep<ListRunsRequest, RunSummaryResponse[], ListRunsStep>, IHttpStep
+{
+    public static HttpMethod Method => HttpMethod.Get;
+    public static string     Path   => "/runs";
 }

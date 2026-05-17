@@ -37,9 +37,9 @@ public abstract class VoucherValidationTestBase : ExecutionTestBase
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
         var listed = await ExecuteAsync(new ListWorkflowsRequest());
-        _ = listed.Single(w => w.Id == workflow.Id).Name;
+        _ = listed.Single(w => w.Name == workflow.Name);
         await ExecuteAsync(new RunWorkflowRequest());
-        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
         await AssertAsync(run);
     }
 
@@ -60,9 +60,9 @@ public class Execution_25_VoucherValidation_ViaUI : VoucherValidationTestBase, I
         _browser          = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
         Page              = await _browser.NewPageAsync();
         _playwrightTarget = new PlaywrightTarget(Page)
-            .Register<ListWorkflowsRequest>(new PlaywrightListWorkflowsStep())
-            .Register<RunWorkflowRequest>  (new PlaywrightRunWorkflowStep())
-            .Register<GetRunRequest>       (new PlaywrightGetRunStep());
+            .Register<PlaywrightListWorkflowsStep>()
+            .Register<PlaywrightRunWorkflowStep>()
+            .Register<PlaywrightGetRunStep>();
     }
 
     public async Task DisposeAsync()
