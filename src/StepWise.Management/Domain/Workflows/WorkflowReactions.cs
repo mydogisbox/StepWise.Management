@@ -1,6 +1,7 @@
 using CommandFramework.Core;
 using Dapper;
 using Npgsql;
+using static StepWise.Management.Domain.Workflows.WorkflowEvent;
 
 namespace StepWise.Management.Domain.Workflows;
 

@@ -1,6 +1,6 @@
-using System.Text.Json;
 using CommandFramework.Core;
-using StepWise.Management;
+using static StepWise.Management.Domain.Targets.TargetEvent;
+using static StepWise.Management.Domain.Targets.TargetCommands;
 
 namespace StepWise.Management.Domain.Targets;
 
@@ -8,17 +8,22 @@ namespace StepWise.Management.Domain.Targets;
 public record TargetState(string Id, string Name, string BaseUrl, bool IsArchived);
 
 // Events
-public abstract record TargetEvent;
-public record TargetCreated(string Id, string Name, string BaseUrl) : TargetEvent;
-public record TargetUpdated(string Id, string Name, string BaseUrl) : TargetEvent;
-public record TargetArchived(string Id) : TargetEvent;
-public record TargetUnarchived(string Id) : TargetEvent;
+public abstract record TargetEvent
+{
+    public record TargetCreated(string Id, string Name, string BaseUrl) : TargetEvent;
+    public record TargetUpdated(string Id, string Name, string BaseUrl) : TargetEvent;
+    public record TargetArchived(string Id) : TargetEvent;
+    public record TargetUnarchived(string Id) : TargetEvent;
+}
 
 // Commands
-public record CreateTarget(string Id, string Name, string BaseUrl);
-public record UpdateTarget(string Name, string BaseUrl);
-public record ArchiveTarget();
-public record UnarchiveTarget();
+public abstract record TargetCommands
+{
+    public record CreateTarget(string Id, string Name, string BaseUrl) : TargetCommands;
+    public record UpdateTarget(string Name, string BaseUrl) : TargetCommands;
+    public record ArchiveTarget() : TargetCommands;
+    public record UnarchiveTarget() : TargetCommands;
+}
 
 public static class TargetAggregate
 {
@@ -68,26 +73,6 @@ public static class TargetAggregate
             UnarchiveTarget cmd when state != null => Handle(state, cmd),
             _ when state == null => "Target does not exist.",
             _ => $"Unknown command '{command.GetType().Name}'."
-        };
-
-    public static object DeserializeCommand(string type, JsonElement payload)
-        => type switch
-        {
-            nameof(CreateTarget) => payload.Deserialize<CreateTarget>(JsonConfig.Options)!,
-            nameof(UpdateTarget) => payload.Deserialize<UpdateTarget>(JsonConfig.Options)!,
-            nameof(ArchiveTarget) => payload.Deserialize<ArchiveTarget>(JsonConfig.Options)!,
-            nameof(UnarchiveTarget) => payload.Deserialize<UnarchiveTarget>(JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
-        };
-
-    public static TargetEvent DeserializeEvent(string type, string payload)
-        => type switch
-        {
-            nameof(TargetCreated) => JsonSerializer.Deserialize<TargetCreated>(payload, JsonConfig.Options)!,
-            nameof(TargetUpdated) => JsonSerializer.Deserialize<TargetUpdated>(payload, JsonConfig.Options)!,
-            nameof(TargetArchived) => JsonSerializer.Deserialize<TargetArchived>(payload, JsonConfig.Options)!,
-            nameof(TargetUnarchived) => JsonSerializer.Deserialize<TargetUnarchived>(payload, JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 
     public static readonly AggregateDefinition<TargetState, TargetEvent> Definition = new(

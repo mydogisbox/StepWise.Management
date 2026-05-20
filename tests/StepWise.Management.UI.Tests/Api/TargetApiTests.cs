@@ -66,7 +66,7 @@ public class Target_04_Archive_ExcludedFromList : ManagementTestBase
         await ExecuteAsync(new PostTargetCommandsRequest());
 
         var targets = await ExecuteAsync(new ListTargetsRequest());
-        Assert.DoesNotContain(targets, t => t.Name == create.Name);
+        Assert.DoesNotContain(targets.Items, t => t.Name == create.Name);
     }
 }
 
@@ -80,7 +80,7 @@ public class Target_05_Archive_IncludedInListWhenShowArchived : ManagementTestBa
         await ExecuteAsync(new PostTargetCommandsRequest());
 
         var targets = await ExecuteAsync(new ListTargetsRequest() with { ShowArchived = Static("true") });
-        var target  = targets.Single(t => t.Name == create.Name);
+        var target  = targets.Items.Single(t => t.Name == create.Name);
         Assert.True(target.IsArchived);
     }
 }
@@ -94,6 +94,28 @@ public class Target_06_Create_HasCreatedAt : ManagementTestBase
         await ExecuteAsync(new PostTargetCommandsRequest());
 
         var targets = await ExecuteAsync(new ListTargetsRequest());
-        Assert.NotNull(targets.Single(t => t.Name == create.Name).CreatedAt);
+        Assert.NotNull(targets.Items.Single(t => t.Name == create.Name).CreatedAt);
+    }
+}
+
+public class Target_09_Paging_PageSizeIsRespected : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            await BuildAsync(new CreateTargetCommand());
+            await ExecuteAsync(new PostTargetCommandsRequest());
+        }
+
+        var page1 = await ExecuteAsync(new ListTargetsRequest() with { PageSize = Static(2) });
+        Assert.Equal(2, page1.Items.Length);
+        Assert.True(page1.TotalPages >= 2);
+        Assert.Equal(2, page1.PageSize);
+
+        var page2 = await ExecuteAsync(new ListTargetsRequest() with { Page = Static(2), PageSize = Static(2) });
+        Assert.True(page2.Items.Length >= 1);
+        Assert.True(page2.Items.All(t => page1.Items.All(t1 => t1.Name != t.Name)));
     }
 }

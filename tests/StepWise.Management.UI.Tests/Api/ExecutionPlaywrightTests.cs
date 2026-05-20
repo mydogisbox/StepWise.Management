@@ -4,65 +4,23 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public abstract class VoucherValidationTestBase : ExecutionTestBase
+public class PlaywrightContext : IAsyncLifetime
 {
-    [Fact]
-    public async Task Test()
-    {
-        await SetupExampleCatalogAsync();
-
-        var validateSave10Step = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("validate-save10"),
-            Method   = Static("POST"),
-            Path     = Static("/vouchers/validate"),
-            Defaults = Static<object?>(new Dictionary<string, object?> { ["code"] = "SAVE10" })
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(validateSave10Step.Id),
-            Commands    = Static(new List<object> { validateSave10Step })
-        });
-
-        var workflow = await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(validateSave10Step.Id) });
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { equal = new object[] { "$validate-save10.valid", "true" } })
-        });
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { equal = new object[] { "$validate-save10.discountPct", "10" } })
-        });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
-
-        var listed = await ExecuteAsync(new ListWorkflowsRequest());
-        _ = listed.Single(w => w.Name == workflow.Name);
-        await ExecuteAsync(new RunWorkflowRequest());
-        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
-        await AssertAsync(run);
-    }
-
-    protected virtual Task AssertAsync(RunResponse run) => Task.CompletedTask;
-}
-
-public class Execution_25_VoucherValidation_ViaUI : VoucherValidationTestBase, IAsyncLifetime
-{
-    private IPlaywright      _playwright      = null!;
-    private IBrowser         _browser         = null!;
-    private PlaywrightTarget _playwrightTarget = null!;
-
-    protected IPage Page { get; private set; } = null!;
+    private IPlaywright _playwright = null!;
+    private IBrowser    _browser    = null!;
+    public  IPage       Page        { get; private set; } = null!;
+    public  PlaywrightTarget Target { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
-        _playwright       = await Playwright.CreateAsync();
-        _browser          = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
-        Page              = await _browser.NewPageAsync();
-        _playwrightTarget = new PlaywrightTarget(Page)
+        _playwright = await Playwright.CreateAsync();
+        _browser    = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
+        Page        = await _browser.NewPageAsync();
+        Target      = new PlaywrightTarget(Page)
             .Register<PlaywrightListWorkflowsStep>()
             .Register<PlaywrightRunWorkflowStep>()
-            .Register<PlaywrightGetRunStep>();
+            .Register<PlaywrightGetRunStep>()
+            .Register<PlaywrightListRunsStep>();
     }
 
     public async Task DisposeAsync()
@@ -70,13 +28,211 @@ public class Execution_25_VoucherValidation_ViaUI : VoucherValidationTestBase, I
         await _browser.DisposeAsync();
         _playwright.Dispose();
     }
+}
+
+public class Execution_25_VoucherValidation_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
 
     protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), _playwrightTarget, ApiTarget);
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
 
-    protected override Task AssertAsync(RunResponse run)
+    [Fact]
+    public async Task Test()
     {
+        var workflowName = await Setups.VoucherValidationAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
         Assert.True(run.Passed);
-        return Task.CompletedTask;
+    }
+}
+
+public class Execution_33_RunFailed_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.RunFailedWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.False(run.Passed);
+    }
+}
+
+public class Execution_32_ReusedExampleWorkflowAssertion_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.ReusedExampleWorkflowAssertionAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Execution_31_InStockFilter_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.InStockFilterWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Execution_30_ProductCategoryFilter_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.ProductCategoryFilterWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Execution_29_RunResultStoredAsObject_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Execution_28_StoredAssertion_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.StoredAssertionWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Execution_27_CrossReference_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.CrossReferenceWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.False(run.Passed);
+    }
+}
+
+public class Execution_26_RunWorkflow_ViaUI : ExecutionTestBase, IAsyncLifetime
+{
+    private readonly PlaywrightContext _pw = new();
+
+    public Task InitializeAsync() => _pw.InitializeAsync();
+    public Task DisposeAsync()    => _pw.DisposeAsync();
+
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), _pw.Target, ApiTarget);
+
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
+
+        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+        Assert.True(run.Passed);
     }
 }

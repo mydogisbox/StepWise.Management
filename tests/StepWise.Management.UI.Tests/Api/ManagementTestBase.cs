@@ -6,7 +6,7 @@ namespace StepWise.Management.UI.Tests.Api;
 public abstract class ManagementTestBase
 {
     private WorkflowRunner? _runner;
-    private WorkflowRunner Runner => _runner ??= BuildRunner();
+    protected WorkflowRunner Runner => _runner ??= BuildRunner();
 
     protected readonly ITarget ApiTarget = new HttpTarget("http://localhost:5020")
         .Register<PostTargetCommandsStep>()

@@ -36,6 +36,7 @@
           <button onclick="openModal('modal-new-catalog')" class="btn-primary">+ New Catalog</button>
         </div>
         <div id="catalog-list"></div>
+        <div id="pager-catalogs"></div>
       </div>
 
       <!-- Catalog detail panel -->
@@ -110,13 +111,14 @@
         <h2 class="text-xl font-bold">Targets</h2>
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" id="targets-show-archived" onchange="loadTargets()" class="rounded" />
+            <input type="checkbox" id="targets-show-archived" onchange="loadTargets(1)" class="rounded" />
             Show archived
           </label>
           <button onclick="openNewTargetModal()" class="btn-primary">+ New Target</button>
         </div>
       </div>
       <div id="target-list"></div>
+      <div id="pager-targets"></div>
     </div>
 
     <!-- ===== WORKFLOWS ===== -->
@@ -126,13 +128,14 @@
           <h2 class="text-xl font-bold">Workflows</h2>
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input type="checkbox" id="workflows-show-archived" onchange="loadWorkflows()" class="rounded" />
+              <input type="checkbox" id="workflows-show-archived" onchange="loadWorkflows(1)" class="rounded" />
               Show archived
             </label>
             <button onclick="openModal('modal-new-workflow')" class="btn-primary">+ New Workflow</button>
           </div>
         </div>
         <div id="workflow-list"></div>
+        <div id="pager-workflows"></div>
       </div>
 
       <!-- Workflow detail panel -->
@@ -228,6 +231,7 @@
         <button onclick="loadRuns()" class="text-sm text-indigo-600 hover:underline">Refresh</button>
       </div>
       <div id="runs-list"></div>
+      <div id="pager-runs"></div>
 
       <!-- Run detail -->
       <div id="run-detail" class="hidden mt-8 bg-white rounded-lg shadow">
@@ -325,6 +329,24 @@ let currentWorkflowState = null;
 let allCatalogSteps = [];
 
 let runPollTimer = null;
+
+const PAGE_SIZE = 10;
+const pages = { catalogs: 1, targets: 1, workflows: 1, runs: 1 };
+
+function renderPager(view, page, totalPages, loadFn) {
+  const id = `pager-${view}`;
+  let el = document.getElementById(id);
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="flex items-center gap-3 mt-4 justify-center text-sm text-gray-600">
+      <button onclick="${loadFn}(${page - 1})" ${page <= 1 ? 'disabled' : ''}
+        class="px-3 py-1 rounded border ${page <= 1 ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'}">← Prev</button>
+      <span id="page-indicator-${view}">Page ${page} of ${totalPages}</span>
+      <button onclick="${loadFn}(${page + 1})" ${page >= totalPages ? 'disabled' : ''}
+        class="px-3 py-1 rounded border ${page >= totalPages ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'}">Next →</button>
+    </div>`;
+}
 
 // ── Utilities ────────────────────────────────────────────────────────────────
 function uuid() { return crypto.randomUUID(); }
@@ -427,15 +449,17 @@ function showView(name) {
 }
 
 // ── Catalogs ─────────────────────────────────────────────────────────────────
-async function loadCatalogs() {
+async function loadCatalogs(page = pages.catalogs) {
+  pages.catalogs = page;
   try {
-    const items = await api('GET', '/catalogs');
-    const rows = items.map(c => `<tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogDetail('${esc(c.id)}')">
+    const data = await api('GET', `/catalogs?page=${page}&pageSize=${PAGE_SIZE}`);
+    const rows = data.items.map(c => `<tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogDetail('${esc(c.id)}')">
       ${td(`<span class="font-medium text-gray-900">${esc(c.name)}</span>`)}
       ${td(`<span class="text-gray-500">${esc(c.description || '—')}</span>`)}
       ${tdActions(actionLink('Edit', `openCatalogDetail('${esc(c.id)}')`), actionLink('Archive', `archiveCatalogFromList('${esc(c.id)}')`, 'yellow'))}
     </tr>`);
     document.getElementById('catalog-list').innerHTML = table(['Name', 'Description', ''], rows);
+    renderPager('catalogs', page, data.totalPages, 'loadCatalogs');
   } catch(e) { showToast(e.message, true); showLoadError('catalog-list', e.message); }
 }
 
@@ -615,11 +639,13 @@ async function unarchiveCatalogStep(id) {
 }
 
 // ── Targets ──────────────────────────────────────────────────────────────────
-async function loadTargets() {
+async function loadTargets(page = pages.targets) {
+  pages.targets = page;
   const showArchived = document.getElementById('targets-show-archived')?.checked;
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}) });
   try {
-    const items = await api('GET', `/targets${showArchived ? '?showArchived=true' : ''}`);
-    const rows = items.map(t => `<tr class="hover:bg-gray-50 ${t.isArchived ? 'opacity-60' : ''}">
+    const data = await api('GET', `/targets?${q}`);
+    const rows = data.items.map(t => `<tr class="hover:bg-gray-50 ${t.isArchived ? 'opacity-60' : ''}">
       ${td(`<span class="font-medium text-gray-900">${esc(t.name)}</span> ${t.isArchived ? archivedBadge() : ''}`)}
       ${td(`<span class="font-mono text-gray-600 text-xs">${esc(t.baseUrl)}</span>`)}
       ${td(formatDate(t.createdAt), 'text-gray-400')}
@@ -631,6 +657,7 @@ async function loadTargets() {
       )}
     </tr>`);
     document.getElementById('target-list').innerHTML = table(['Name', 'Base URL', 'Created', ''], rows);
+    renderPager('targets', page, data.totalPages, 'loadTargets');
   } catch(e) { showToast(e.message, true); showLoadError('target-list', e.message); }
 }
 
@@ -691,11 +718,13 @@ function openNewTargetModal() {
 }
 
 // ── Workflows ────────────────────────────────────────────────────────────────
-async function loadWorkflows() {
+async function loadWorkflows(page = pages.workflows) {
+  pages.workflows = page;
   const showArchived = document.getElementById('workflows-show-archived')?.checked;
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}) });
   try {
-    const items = await api('GET', `/workflows${showArchived ? '?showArchived=true' : ''}`);
-    const rows = items.map(w => `<tr class="hover:bg-gray-50 ${w.isArchived ? 'opacity-60' : ''}">
+    const data = await api('GET', `/workflows?${q}`);
+    const rows = data.items.map(w => `<tr class="hover:bg-gray-50 ${w.isArchived ? 'opacity-60' : ''}">
       ${td(`<span class="font-medium text-gray-900">${esc(w.name)}</span> ${w.isArchived ? archivedBadge() : ''}`)}
       ${td(`<span class="text-gray-500">${esc(w.description || '—')}</span>`)}
       ${tdActions(
@@ -704,6 +733,7 @@ async function loadWorkflows() {
       )}
     </tr>`);
     document.getElementById('workflow-list').innerHTML = table(['Name', 'Description', ''], rows);
+    renderPager('workflows', page, data.totalPages, 'loadWorkflows');
   } catch(e) { showToast(e.message, true); showLoadError('workflow-list', e.message); }
 }
 
@@ -965,10 +995,12 @@ async function quickRun(id) {
 }
 
 // ── Runs ─────────────────────────────────────────────────────────────────────
-async function loadRuns() {
+async function loadRuns(page = pages.runs) {
+  pages.runs = page;
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE });
   try {
-    const items = await api('GET', '/runs');
-    const rows = items.map(r => `<tr class="hover:bg-gray-50">
+    const data = await api('GET', `/runs?${q}`);
+    const rows = data.items.map(r => `<tr class="hover:bg-gray-50">
       ${td(`<span class="font-medium text-gray-900">${esc(r.workflowName || '—')}</span>`)}
       ${td(passBadge(r.passed))}
       ${td(formatDate(r.startedAt), 'text-gray-400')}
@@ -976,6 +1008,7 @@ async function loadRuns() {
       ${tdActions(actionLink('View', `viewRun('${esc(r.id)}')`))}
     </tr>`);
     document.getElementById('runs-list').innerHTML = table(['Workflow', 'Result', 'Started', 'Duration', ''], rows);
+    renderPager('runs', page, data.totalPages, 'loadRuns');
   } catch(e) { showToast(e.message, true); showLoadError('runs-list', e.message); }
 }
 

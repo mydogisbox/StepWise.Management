@@ -1,6 +1,7 @@
 using CommandFramework.Core;
 using Dapper;
 using Npgsql;
+using static StepWise.Management.Domain.Catalogs.CatalogEvent;
 
 namespace StepWise.Management.Domain.Catalogs;
 

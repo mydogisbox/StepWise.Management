@@ -1,7 +1,6 @@
-using System.Text.Json;
 using CommandFramework.Core;
-using Walkthrough.Json;
-using StepWise.Management;
+using static StepWise.Management.Domain.Catalogs.CatalogEvent;
+using static StepWise.Management.Domain.Catalogs.CatalogCommands;
 
 namespace StepWise.Management.Domain.Catalogs;
 
@@ -9,17 +8,22 @@ namespace StepWise.Management.Domain.Catalogs;
 public record CatalogState(string Id, string Name, bool IsArchived, string Description = "");
 
 // Events
-public abstract record CatalogEvent;
-public record CatalogCreated(string Id, string Name) : CatalogEvent;
-public record CatalogUpdated(string Id, string Name, string Description) : CatalogEvent;
-public record CatalogArchived(string Id) : CatalogEvent;
-public record CatalogUnarchived(string Id) : CatalogEvent;
+public abstract record CatalogEvent
+{
+    public record CatalogCreated(string Id, string Name) : CatalogEvent;
+    public record CatalogUpdated(string Id, string Name, string Description) : CatalogEvent;
+    public record CatalogArchived(string Id) : CatalogEvent;
+    public record CatalogUnarchived(string Id) : CatalogEvent;
+}
 
 // Commands
-public record CreateCatalog(string Id, string Name);
-public record UpdateCatalog(string Name, string Description = "");
-public record ArchiveCatalog();
-public record UnarchiveCatalog();
+public abstract record CatalogCommands
+{
+    public record CreateCatalog(string Id, string Name) : CatalogCommands;
+    public record UpdateCatalog(string Name, string Description = "") : CatalogCommands;
+    public record ArchiveCatalog() : CatalogCommands;
+    public record UnarchiveCatalog() : CatalogCommands;
+}
 
 public static class CatalogAggregate
 {
@@ -70,26 +74,6 @@ public static class CatalogAggregate
             UnarchiveCatalog cmd when state != null => Handle(state, cmd),
             _ when state == null => "Catalog does not exist.",
             _ => $"Unknown command '{command.GetType().Name}'."
-        };
-
-    public static object DeserializeCommand(string type, JsonElement payload)
-        => type switch
-        {
-            nameof(CreateCatalog) => payload.Deserialize<CreateCatalog>(JsonConfig.Options)!,
-            nameof(UpdateCatalog) => payload.Deserialize<UpdateCatalog>(JsonConfig.Options)!,
-            nameof(ArchiveCatalog) => payload.Deserialize<ArchiveCatalog>(JsonConfig.Options)!,
-            nameof(UnarchiveCatalog) => payload.Deserialize<UnarchiveCatalog>(JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
-        };
-
-    public static CatalogEvent DeserializeEvent(string type, string payload)
-        => type switch
-        {
-            nameof(CatalogCreated) => JsonSerializer.Deserialize<CatalogCreated>(payload, JsonConfig.Options)!,
-            nameof(CatalogUpdated) => JsonSerializer.Deserialize<CatalogUpdated>(payload, JsonConfig.Options)!,
-            nameof(CatalogArchived) => JsonSerializer.Deserialize<CatalogArchived>(payload, JsonConfig.Options)!,
-            nameof(CatalogUnarchived) => JsonSerializer.Deserialize<CatalogUnarchived>(payload, JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 
     public static readonly AggregateDefinition<CatalogState, CatalogEvent> Definition = new(

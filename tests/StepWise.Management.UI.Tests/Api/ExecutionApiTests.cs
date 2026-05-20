@@ -5,53 +5,6 @@ namespace StepWise.Management.UI.Tests.Api;
 
 public abstract class ExecutionTestBase : WorkflowTestBase
 {
-    protected async Task<(UpsertStepOutput AdminStep, UpsertStepOutput ListProductsStep)> SetupExampleCatalogAsync()
-    {
-        await BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:5010") });
-        await ExecuteAsync(new PostTargetCommandsRequest());
-        await ExecuteAsync(new ListTargetsRequest());
-
-        await BuildAsync(new CreateCatalogCommand());
-        await ExecuteAsync(new PostCatalogCommandsRequest());
-
-        var adminStep = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("admin-create-product"),
-            Method   = Static("POST"),
-            Path     = Static("/admin/products"),
-            Headers  = Static<object?>(new Dictionary<string, object?>
-            {
-                ["X-Admin-Key"] = new Dictionary<string, object?> { ["static"] = "admin-secret" }
-            }),
-            Defaults = Static<object?>(new Dictionary<string, object?>
-            {
-                ["name"]     = new Dictionary<string, object?> { ["generated"] = "guid" },
-                ["category"] = new Dictionary<string, object?> { ["static"] = "electronics" },
-                ["price"]    = new Dictionary<string, object?> { ["static"] = 9.99 },
-                ["stock"]    = new Dictionary<string, object?> { ["static"] = 10 }
-            })
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(adminStep.Id),
-            Commands    = Static(new List<object> { adminStep })
-        });
-
-        var listStep = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("list-products"),
-            Method   = Static("GET"),
-            Path     = Static("/products")
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(listStep.Id),
-            Commands    = Static(new List<object> { listStep })
-        });
-
-        return (adminStep, listStep);
-    }
-
     protected static RunStepResult GetStep(RunResult result, string stepName)
         => result.Steps.Single(s => s.StepName == stepName);
 }
@@ -61,12 +14,8 @@ public class Execution_16_RunWorkflow : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        var (adminStep, _) = await SetupExampleCatalogAsync();
+        await Setups.TwoStepWorkflowAsync(Runner);
 
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand());
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -87,16 +36,8 @@ public class Execution_17_CrossReference : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        var (adminStep, _) = await SetupExampleCatalogAsync();
+        await Setups.CrossReferenceWorkflowAsync(Runner);
 
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand());
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { equal = new object[] { "$list-products.totalCount", "999" } })
-        });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -117,16 +58,8 @@ public class Execution_18_StoredAssertion : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        var (adminStep, _) = await SetupExampleCatalogAsync();
+        await Setups.StoredAssertionWorkflowAsync(Runner);
 
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand());
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { notEmpty = "list-products" })
-        });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -147,12 +80,8 @@ public class Execution_19_RunResultStoredAsObject : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        var (adminStep, _) = await SetupExampleCatalogAsync();
+        await Setups.TwoStepWorkflowAsync(Runner);
 
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand());
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -174,24 +103,8 @@ public class Execution_20_ProductCategoryFilter : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        var (adminStep, _) = await SetupExampleCatalogAsync();
+        await Setups.ProductCategoryFilterWorkflowAsync(Runner);
 
-        var listElectronicsStep = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("list-electronics"),
-            Method   = Static("GET"),
-            Path     = Static("/products?category=electronics")
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(listElectronicsStep.Id),
-            Commands    = Static(new List<object> { listElectronicsStep })
-        });
-
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listElectronicsStep.Id) });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -212,23 +125,8 @@ public class Execution_21_InStockFilter : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        await SetupExampleCatalogAsync();
+        await Setups.InStockFilterWorkflowAsync(Runner);
 
-        var listInStockStep = await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static("list-in-stock"),
-            Method   = Static("GET"),
-            Path     = Static("/products?inStock=true")
-        });
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(listInStockStep.Id),
-            Commands    = Static(new List<object> { listInStockStep })
-        });
-
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listInStockStep.Id) });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -247,22 +145,8 @@ public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
     [Fact]
     public async Task Test()
     {
-        await BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:9999") });
-        await ExecuteAsync(new PostTargetCommandsRequest());
-        await ExecuteAsync(new ListTargetsRequest());
+        await Setups.RunFailedWorkflowAsync(Runner);
 
-        await BuildAsync(new CreateCatalogCommand());
-        await ExecuteAsync(new PostCatalogCommandsRequest());
-        var step = await BuildAsync(new UpsertStepCommand());
-        await ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(step.Id),
-            Commands    = Static(new List<object> { step })
-        });
-
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand());
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status != "pending");
 
@@ -274,20 +158,11 @@ public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
 public class Execution_24_ReusedExampleWorkflowAssertion : ExecutionTestBase
 {
     // Mirrors example-01-list-products.workflow.json: { "notEmpty": "$listProducts" }
-    // Uses kebab-case step names registered by SetupExampleCatalogAsync
     [Fact]
     public async Task Test()
     {
-        var (adminStep, listStep) = await SetupExampleCatalogAsync();
+        await Setups.ReusedExampleWorkflowAssertionAsync(Runner);
 
-        await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listStep.Id) });
-        await BuildAsync(new AddAssertionCommand() with
-        {
-            Assertion = Static<object>(new { notEmpty = "$list-products" })
-        });
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
         await ExecuteAsync(new RunWorkflowRequest());
         var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
@@ -298,10 +173,16 @@ public class Execution_24_ReusedExampleWorkflowAssertion : ExecutionTestBase
     }
 }
 
-public class Execution_22_VoucherValidationWithAssertions : VoucherValidationTestBase
+public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
 {
-    protected override Task AssertAsync(RunResponse run)
+    [Fact]
+    public async Task Test()
     {
+        await Setups.VoucherValidationAsync(Runner);
+
+        await ExecuteAsync(new RunWorkflowRequest());
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed", timeoutMs: 15000);
+
         var result = run.Result!;
         Assert.True(result.Passed);
         Assert.Single(result.Steps);
@@ -309,6 +190,45 @@ public class Execution_22_VoucherValidationWithAssertions : VoucherValidationTes
 
         var s1 = GetStep(result, "validate-save10");
         Assert.NotEqual(JsonValueKind.Undefined, s1.Response.GetProperty("valid").ValueKind);
-        return Task.CompletedTask;
+    }
+}
+
+public class Runs_01_List_ShowsCompletedRun : WorkflowTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupCatalogWithStepAsync();
+
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        await ExecuteAsync(new RunWorkflowRequest());
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed");
+        var runs = await ExecuteAsync(new ListRunsRequest());
+
+        var run = runs.Items.Single(r => r.WorkflowId == create.Id);
+        Assert.True(run.Passed);
+    }
+}
+
+public class Runs_03_Paging_PageSizeIsRespected : WorkflowTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        await SetupCatalogWithStepAsync();
+
+        var create = await BuildAsync(new CreateWorkflowCommand());
+        await BuildAsync(new AppendStepCommand());
+        await ExecuteAsync(new PostWorkflowCommandsRequest());
+        await ExecuteAsync(new RunWorkflowRequest());
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed");
+
+        var page1 = await ExecuteAsync(new ListRunsRequest() with { PageSize = Static(1) });
+        Assert.Equal(1, page1.PageSize);
+        Assert.True(page1.Total >= 1);
+        Assert.Single(page1.Items);
+        Assert.Equal((int)Math.Ceiling((double)page1.Total / 1), page1.TotalPages);
     }
 }

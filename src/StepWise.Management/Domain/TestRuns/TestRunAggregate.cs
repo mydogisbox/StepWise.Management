@@ -1,6 +1,8 @@
 using System.Text.Json;
 using CommandFramework.Core;
 using StepWise.Management;
+using static StepWise.Management.Domain.TestRuns.WorkflowRunEvent;
+using static StepWise.Management.Domain.TestRuns.WorkflowRunCommands;
 
 namespace StepWise.Management.Domain.TestRuns;
 
@@ -16,10 +18,12 @@ public record WorkflowRunState(
     long? DurationMs);
 
 // Events
-public abstract record WorkflowRunEvent;
-public record RunTriggered(string Id, string WorkflowId, DateTimeOffset TriggeredAt) : WorkflowRunEvent;
-public record RunCompleted(string Id, bool Passed, JsonElement Result, long DurationMs) : WorkflowRunEvent;
-public record RunFailed(string Id, string Error, long DurationMs) : WorkflowRunEvent;
+public abstract record WorkflowRunEvent
+{
+    public record RunTriggered(string Id, string WorkflowId, DateTimeOffset TriggeredAt) : WorkflowRunEvent;
+    public record RunCompleted(string Id, bool Passed, JsonElement Result, long DurationMs) : WorkflowRunEvent;
+    public record RunFailed(string Id, string Error, long DurationMs) : WorkflowRunEvent;
+}
 
 // Status constants
 public static class RunStatus
@@ -30,9 +34,12 @@ public static class RunStatus
 }
 
 // Commands
-public record TriggerRun(string Id, string WorkflowId);
-public record RecordResult(bool Passed, JsonElement Result, long DurationMs);
-public record RecordFailure(string Error, long DurationMs);
+public abstract record WorkflowRunCommands
+{
+    public record TriggerRun(string Id, string WorkflowId) : WorkflowRunCommands;
+    public record RecordResult(bool Passed, JsonElement Result, long DurationMs) : WorkflowRunCommands;
+    public record RecordFailure(string Error, long DurationMs) : WorkflowRunCommands;
+}
 
 public static class WorkflowRunAggregate
 {
@@ -89,24 +96,6 @@ public static class WorkflowRunAggregate
             RecordFailure cmd when state != null => Handle(state, cmd),
             _ when state == null => "Run does not exist.",
             _ => $"Unknown command '{command.GetType().Name}'."
-        };
-
-    public static object DeserializeCommand(string type, JsonElement payload)
-        => type switch
-        {
-            nameof(TriggerRun) => payload.Deserialize<TriggerRun>(JsonConfig.Options)!,
-            nameof(RecordResult) => payload.Deserialize<RecordResult>(JsonConfig.Options)!,
-            nameof(RecordFailure) => payload.Deserialize<RecordFailure>(JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
-        };
-
-    public static WorkflowRunEvent DeserializeEvent(string type, string payload)
-        => type switch
-        {
-            nameof(RunTriggered) => JsonSerializer.Deserialize<RunTriggered>(payload, JsonConfig.Options)!,
-            nameof(RunCompleted) => JsonSerializer.Deserialize<RunCompleted>(payload, JsonConfig.Options)!,
-            nameof(RunFailed) => JsonSerializer.Deserialize<RunFailed>(payload, JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 
     public static readonly AggregateDefinition<WorkflowRunState, WorkflowRunEvent> Definition = new(

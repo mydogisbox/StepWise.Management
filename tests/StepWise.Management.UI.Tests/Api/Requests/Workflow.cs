@@ -144,21 +144,32 @@ public class GetWorkflowStep : HttpStep<GetWorkflowRequest, WorkflowResponse, Ge
 
 public record WorkflowSummaryResponse(string Id, string Name, bool IsArchived);
 
-public record ListWorkflowsRequest() : WorkflowRequest<WorkflowSummaryResponse[], ListWorkflowsRequest>, IWorkflowRequest
+public record ListWorkflowsRequest() : WorkflowRequest<PagedResponse<WorkflowSummaryResponse>, ListWorkflowsRequest>, IWorkflowRequest
 {
     public static string StepName => "listWorkflows";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
+    public IFieldValue<int>    Page         { get; init; } = Static(1);
+    public IFieldValue<int>    PageSize     { get; init; } = Static(10);
+    public IFieldValue<string> Name         { get; init; } = Static("");
 }
 
-public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, WorkflowSummaryResponse[], ListWorkflowsStep>, IHttpStep
+public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, PagedResponse<WorkflowSummaryResponse>, ListWorkflowsStep>, IHttpStep
 {
     public static HttpMethod Method => HttpMethod.Get;
     public static string     Path   => "/workflows";
 
-    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
+    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields)
     {
-        ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false"
-    };
+        var q = new Dictionary<string, string>
+        {
+            ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false",
+            ["page"]         = resolvedFields["Page"]?.ToString() ?? "1",
+            ["pageSize"]     = resolvedFields["PageSize"]?.ToString() ?? "10"
+        };
+        var name = resolvedFields["Name"]?.ToString();
+        if (!string.IsNullOrEmpty(name)) q["name"] = name;
+        return q;
+    }
 }
 
 // ── POST /api/workflows/{workflowId}/run ──────────────────────────────────────
@@ -201,13 +212,22 @@ public class GetRunStep : HttpStep<GetRunRequest, RunResponse, GetRunStep>, IHtt
 
 public record RunSummaryResponse(string Id, string WorkflowId, string? WorkflowName, bool? Passed, int? DurationMs);
 
-public record ListRunsRequest() : WorkflowRequest<RunSummaryResponse[], ListRunsRequest>, IWorkflowRequest
+public record ListRunsRequest() : WorkflowRequest<PagedResponse<RunSummaryResponse>, ListRunsRequest>, IWorkflowRequest
 {
     public static string StepName => "listRuns";
+    public IFieldValue<int>    Page         { get; init; } = Static(1);
+    public IFieldValue<int>    PageSize     { get; init; } = Static(10);
+    public IFieldValue<string> WorkflowName { get; init; } = Static("");
 }
 
-public class ListRunsStep : HttpStep<ListRunsRequest, RunSummaryResponse[], ListRunsStep>, IHttpStep
+public class ListRunsStep : HttpStep<ListRunsRequest, PagedResponse<RunSummaryResponse>, ListRunsStep>, IHttpStep
 {
     public static HttpMethod Method => HttpMethod.Get;
     public static string     Path   => "/runs";
+
+    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
+    {
+        ["page"]     = resolvedFields["Page"]?.ToString() ?? "1",
+        ["pageSize"] = resolvedFields["PageSize"]?.ToString() ?? "10"
+    };
 }

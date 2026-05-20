@@ -2,6 +2,7 @@ using System.Text.Json;
 using CommandFramework.Core;
 using Dapper;
 using Npgsql;
+using static StepWise.Management.Domain.TestRuns.WorkflowRunEvent;
 
 namespace StepWise.Management.Domain.TestRuns;
 

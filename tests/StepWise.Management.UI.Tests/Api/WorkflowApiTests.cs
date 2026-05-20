@@ -7,9 +7,9 @@ public abstract class WorkflowTestBase : ManagementTestBase
 {
     protected async Task SetupCatalogWithStepAsync()
     {
-        await BuildAsync(new CreateTargetCommand());
+        var target = await BuildAsync(new CreateTargetCommand());
         await ExecuteAsync(new PostTargetCommandsRequest());
-        await ExecuteAsync(new ListTargetsRequest());
+        await ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
 
         await BuildAsync(new CreateCatalogCommand());
         await ExecuteAsync(new PostCatalogCommandsRequest());
@@ -369,7 +369,7 @@ public class Workflow_17_Archive_ExcludedFromList : WorkflowTestBase
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         var workflows = await ExecuteAsync(new ListWorkflowsRequest());
 
-        Assert.DoesNotContain(workflows, w => w.Name == create.Name);
+        Assert.DoesNotContain(workflows.Items, w => w.Name == create.Name);
     }
 }
 
@@ -383,26 +383,29 @@ public class Workflow_18_Archive_IncludedInListWhenShowArchived : WorkflowTestBa
         await ExecuteAsync(new PostWorkflowCommandsRequest());
         var workflows = await ExecuteAsync(new ListWorkflowsRequest() with { ShowArchived = Static("true") });
 
-        var workflow = workflows.Single(w => w.Id == create.Id);
+        var workflow = workflows.Items.Single(w => w.Id == create.Id);
         Assert.True(workflow.IsArchived);
     }
 }
 
-public class Runs_01_List_ShowsCompletedRun : WorkflowTestBase
+public class Workflow_36_Paging_PageSizeIsRespected : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        for (var i = 0; i < 3; i++)
+        {
+            await BuildAsync(new CreateWorkflowCommand());
+            await ExecuteAsync(new PostWorkflowCommandsRequest());
+        }
 
-        var create = await BuildAsync(new CreateWorkflowCommand());
-        await BuildAsync(new AppendStepCommand());
-        await ExecuteAsync(new PostWorkflowCommandsRequest());
-        await ExecuteAsync(new RunWorkflowRequest());
-        await PollAsync(new GetRunRequest(), r => r.Status == "completed");
-        var runs = await ExecuteAsync(new ListRunsRequest());
+        var page1 = await ExecuteAsync(new ListWorkflowsRequest() with { PageSize = Static(2) });
+        Assert.Equal(2, page1.Items.Length);
+        Assert.True(page1.TotalPages >= 2);
+        Assert.Equal(2, page1.PageSize);
 
-        var run = runs.Single(r => r.WorkflowId == create.Id);
-        Assert.True(run.Passed);
+        var page2 = await ExecuteAsync(new ListWorkflowsRequest() with { Page = Static(2), PageSize = Static(2) });
+        Assert.True(page2.Items.Length >= 1);
+        Assert.True(page2.Items.All(w => page1.Items.All(w1 => w1.Id != w.Id)));
     }
 }

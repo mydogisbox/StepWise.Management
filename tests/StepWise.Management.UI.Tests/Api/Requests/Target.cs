@@ -4,6 +4,10 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
+// ── Shared paged-response wrapper ─────────────────────────────────────────────
+
+public record PagedResponse<T>(T[] Items, int Total, int Page, int PageSize, int TotalPages);
+
 // ── Target commands (build) ────────────────────────────────────────────────────
 
 public abstract record TargetCommand() : BuildableRequest;
@@ -93,19 +97,30 @@ public class GetTargetStep : HttpStep<GetTargetRequest, TargetResponse, GetTarge
 
 // ── GET /targets ───────────────────────────────────────────────────────────────
 
-public record ListTargetsRequest() : WorkflowRequest<TargetResponse[], ListTargetsRequest>, IWorkflowRequest
+public record ListTargetsRequest() : WorkflowRequest<PagedResponse<TargetResponse>, ListTargetsRequest>, IWorkflowRequest
 {
     public static string StepName => "listTargets";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
+    public IFieldValue<int>    Page         { get; init; } = Static(1);
+    public IFieldValue<int>    PageSize     { get; init; } = Static(10);
+    public IFieldValue<string> Name         { get; init; } = Static("");
 }
 
-public class ListTargetsStep : HttpStep<ListTargetsRequest, TargetResponse[], ListTargetsStep>, IHttpStep
+public class ListTargetsStep : HttpStep<ListTargetsRequest, PagedResponse<TargetResponse>, ListTargetsStep>, IHttpStep
 {
     public static HttpMethod Method => HttpMethod.Get;
     public static string     Path   => "/targets";
 
-    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
+    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields)
     {
-        ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false"
-    };
+        var q = new Dictionary<string, string>
+        {
+            ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false",
+            ["page"]         = resolvedFields["Page"]?.ToString() ?? "1",
+            ["pageSize"]     = resolvedFields["PageSize"]?.ToString() ?? "10"
+        };
+        var name = resolvedFields["Name"]?.ToString();
+        if (!string.IsNullOrEmpty(name)) q["name"] = name;
+        return q;
+    }
 }

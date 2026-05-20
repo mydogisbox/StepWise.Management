@@ -1,7 +1,7 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using CommandFramework.Core;
-using StepWise.Management;
+using static StepWise.Management.Domain.CatalogSteps.CatalogStepEvent;
+using static StepWise.Management.Domain.CatalogSteps.CatalogStepCommands;
 
 namespace StepWise.Management.Domain.CatalogSteps;
 
@@ -23,41 +23,48 @@ public record CatalogStepState(
     int? RetryDurationMs = null);
 
 // Events
-public abstract record CatalogStepEvent;
-public record CatalogStepUpserted(
-    string Id,
-    string CatalogId,
-    string TargetId,
-    string StepName,
-    string Method,
-    string Path,
-    JsonElement? Defaults,
-    JsonElement? RequestShape = null,
-    JsonElement? ResponseShape = null,
-    JsonElement? Headers = null,
-    bool IsPolling = false,
-    int? RetryCount = null,
-    int? RetryDurationMs = null) : CatalogStepEvent;
-public record CatalogStepArchived(string Id) : CatalogStepEvent;
-public record CatalogStepUnarchived(string Id) : CatalogStepEvent;
+public abstract record CatalogStepEvent
+{
+    public record CatalogStepUpserted(
+        string Id,
+        string CatalogId,
+        string TargetId,
+        string StepName,
+        string Method,
+        string Path,
+        JsonElement? Defaults,
+        JsonElement? RequestShape = null,
+        JsonElement? ResponseShape = null,
+        JsonElement? Headers = null,
+        bool IsPolling = false,
+        int? RetryCount = null,
+        int? RetryDurationMs = null) : CatalogStepEvent;
+
+    public record CatalogStepArchived(string Id) : CatalogStepEvent;
+    public record CatalogStepUnarchived(string Id) : CatalogStepEvent;
+}
 
 // Commands
-public record UpsertStep(
-    string Id,
-    string CatalogId,
-    string StepName,
-    string TargetId,
-    string Method,
-    string Path,
-    JsonElement? Defaults = null,
-    JsonElement? RequestShape = null,
-    JsonElement? ResponseShape = null,
-    JsonElement? Headers = null,
-    bool IsPolling = false,
-    int? RetryCount = null,
-    int? RetryDurationMs = null);
-public record ArchiveStep();
-public record UnarchiveStep();
+public abstract record CatalogStepCommands
+{
+    public record UpsertStep(
+        string Id,
+        string CatalogId,
+        string StepName,
+        string TargetId,
+        string Method,
+        string Path,
+        JsonElement? Defaults = null,
+        JsonElement? RequestShape = null,
+        JsonElement? ResponseShape = null,
+        JsonElement? Headers = null,
+        bool IsPolling = false,
+        int? RetryCount = null,
+        int? RetryDurationMs = null) : CatalogStepCommands;
+
+    public record ArchiveStep() : CatalogStepCommands;
+    public record UnarchiveStep() : CatalogStepCommands;
+}
 
 public static class CatalogStepAggregate
 {
@@ -108,24 +115,6 @@ public static class CatalogStepAggregate
             UnarchiveStep cmd when state != null => Handle(state, cmd),
             _ when state == null => "CatalogStep does not exist.",
             _ => $"Unknown command '{command.GetType().Name}'."
-        };
-
-    public static object DeserializeCommand(string type, JsonElement payload)
-        => type switch
-        {
-            nameof(UpsertStep) => payload.Deserialize<UpsertStep>(JsonConfig.Options)!,
-            nameof(ArchiveStep) => payload.Deserialize<ArchiveStep>(JsonConfig.Options)!,
-            nameof(UnarchiveStep) => payload.Deserialize<UnarchiveStep>(JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
-        };
-
-    public static CatalogStepEvent DeserializeEvent(string type, string payload)
-        => type switch
-        {
-            nameof(CatalogStepUpserted) => JsonSerializer.Deserialize<CatalogStepUpserted>(payload, JsonConfig.Options)!,
-            nameof(CatalogStepArchived) => JsonSerializer.Deserialize<CatalogStepArchived>(payload, JsonConfig.Options)!,
-            nameof(CatalogStepUnarchived) => JsonSerializer.Deserialize<CatalogStepUnarchived>(payload, JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 
     public static readonly AggregateDefinition<CatalogStepState, CatalogStepEvent> Definition = new(

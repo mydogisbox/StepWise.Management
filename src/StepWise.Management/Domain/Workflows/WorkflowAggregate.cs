@@ -1,7 +1,8 @@
 using System.Text.Json;
 using CommandFramework.Core;
 using Walkthrough.Json;
-using StepWise.Management;
+using static StepWise.Management.Domain.Workflows.WorkflowEvent;
+using static StepWise.Management.Domain.Workflows.WorkflowCommands;
 
 namespace StepWise.Management.Domain.Workflows;
 
@@ -24,29 +25,34 @@ public record WorkflowState(
     string Description = "");
 
 // Events
-public abstract record WorkflowEvent;
-public record WorkflowCreated(string Id, string Name) : WorkflowEvent;
-public record WorkflowRenamed(string Id, string Name) : WorkflowEvent;
-public record WorkflowDescriptionUpdated(string Id, string Description) : WorkflowEvent;
-public record WorkflowStepAppended(WorkflowStep Step) : WorkflowEvent;
-public record WorkflowStepInsertedBefore(string BeforeId, WorkflowStep Step) : WorkflowEvent;
-public record WorkflowStepRemoved(string StepId) : WorkflowEvent;
-public record WorkflowStepDefaultsSet(string StepId, JsonElement? Defaults) : WorkflowEvent;
-public record AssertionAdded(AssertionDefinition AssertionDefinition) : WorkflowEvent;
-public record WorkflowArchived(string Id) : WorkflowEvent;
-public record WorkflowUnarchived(string Id) : WorkflowEvent;
+public abstract record WorkflowEvent
+{
+    public record WorkflowCreated(string Id, string Name) : WorkflowEvent;
+    public record WorkflowRenamed(string Id, string Name) : WorkflowEvent;
+    public record WorkflowDescriptionUpdated(string Id, string Description) : WorkflowEvent;
+    public record WorkflowStepAppended(WorkflowStep Step) : WorkflowEvent;
+    public record WorkflowStepInsertedBefore(string BeforeId, WorkflowStep Step) : WorkflowEvent;
+    public record WorkflowStepRemoved(string StepId) : WorkflowEvent;
+    public record WorkflowStepDefaultsSet(string StepId, JsonElement? Defaults) : WorkflowEvent;
+    public record AssertionAdded(AssertionDefinition AssertionDefinition) : WorkflowEvent;
+    public record WorkflowArchived(string Id) : WorkflowEvent;
+    public record WorkflowUnarchived(string Id) : WorkflowEvent;
+}
 
 // Commands
-public record CreateWorkflow(string Id, string Name);
-public record RenameWorkflow(string Name);
-public record UpdateDescription(string Description);
-public record AppendStep(string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null);
-public record InsertStepBefore(string BeforeId, string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null);
-public record RemoveStep(string Id);
-public record SetStepDefaults(string Id, JsonElement? Defaults);
-public record AddAssertion(AssertionDefinition Assertion);
-public record ArchiveWorkflow();
-public record UnarchiveWorkflow();
+public abstract record WorkflowCommands
+{
+    public record CreateWorkflow(string Id, string Name) : WorkflowCommands;
+    public record RenameWorkflow(string Name) : WorkflowCommands;
+    public record UpdateDescription(string Description) : WorkflowCommands;
+    public record AppendStep(string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null) : WorkflowCommands;
+    public record InsertStepBefore(string BeforeId, string Id, string CatalogStepId, string CatalogId, JsonElement? Defaults = null) : WorkflowCommands;
+    public record RemoveStep(string Id) : WorkflowCommands;
+    public record SetStepDefaults(string Id, JsonElement? Defaults) : WorkflowCommands;
+    public record AddAssertion(AssertionDefinition Assertion) : WorkflowCommands;
+    public record ArchiveWorkflow() : WorkflowCommands;
+    public record UnarchiveWorkflow() : WorkflowCommands;
+}
 
 public static class WorkflowAggregate
 {
@@ -182,38 +188,6 @@ public static class WorkflowAggregate
             UnarchiveWorkflow cmd when state != null => Handle(state, cmd),
             _ when state == null => "Workflow does not exist.",
             _ => $"Unknown command '{command.GetType().Name}'."
-        };
-
-    public static object DeserializeCommand(string type, JsonElement payload)
-        => type switch
-        {
-            nameof(CreateWorkflow) => payload.Deserialize<CreateWorkflow>(JsonConfig.Options)!,
-            nameof(RenameWorkflow) => payload.Deserialize<RenameWorkflow>(JsonConfig.Options)!,
-            nameof(UpdateDescription) => payload.Deserialize<UpdateDescription>(JsonConfig.Options)!,
-            nameof(AppendStep) => payload.Deserialize<AppendStep>(JsonConfig.Options)!,
-            nameof(InsertStepBefore) => payload.Deserialize<InsertStepBefore>(JsonConfig.Options)!,
-            nameof(RemoveStep) => payload.Deserialize<RemoveStep>(JsonConfig.Options)!,
-            nameof(SetStepDefaults) => payload.Deserialize<SetStepDefaults>(JsonConfig.Options)!,
-            nameof(AddAssertion) => payload.Deserialize<AddAssertion>(JsonConfig.Options)!,
-            nameof(ArchiveWorkflow) => payload.Deserialize<ArchiveWorkflow>(JsonConfig.Options)!,
-            nameof(UnarchiveWorkflow) => payload.Deserialize<UnarchiveWorkflow>(JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown command type '{type}'.")
-        };
-
-    public static WorkflowEvent DeserializeEvent(string type, string payload)
-        => type switch
-        {
-            nameof(WorkflowCreated) => JsonSerializer.Deserialize<WorkflowCreated>(payload, JsonConfig.Options)!,
-            nameof(WorkflowRenamed) => JsonSerializer.Deserialize<WorkflowRenamed>(payload, JsonConfig.Options)!,
-            nameof(WorkflowDescriptionUpdated) => JsonSerializer.Deserialize<WorkflowDescriptionUpdated>(payload, JsonConfig.Options)!,
-            nameof(WorkflowStepAppended) => JsonSerializer.Deserialize<WorkflowStepAppended>(payload, JsonConfig.Options)!,
-            nameof(WorkflowStepInsertedBefore) => JsonSerializer.Deserialize<WorkflowStepInsertedBefore>(payload, JsonConfig.Options)!,
-            nameof(WorkflowStepRemoved) => JsonSerializer.Deserialize<WorkflowStepRemoved>(payload, JsonConfig.Options)!,
-            nameof(WorkflowStepDefaultsSet) => JsonSerializer.Deserialize<WorkflowStepDefaultsSet>(payload, JsonConfig.Options)!,
-            nameof(AssertionAdded) => JsonSerializer.Deserialize<AssertionAdded>(payload, JsonConfig.Options)!,
-            nameof(WorkflowArchived) => JsonSerializer.Deserialize<WorkflowArchived>(payload, JsonConfig.Options)!,
-            nameof(WorkflowUnarchived) => JsonSerializer.Deserialize<WorkflowUnarchived>(payload, JsonConfig.Options)!,
-            _ => throw new InvalidOperationException($"Unknown event type '{type}'.")
         };
 
     public static readonly AggregateDefinition<WorkflowState, WorkflowEvent> Definition = new(

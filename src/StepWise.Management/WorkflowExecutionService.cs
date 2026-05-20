@@ -8,6 +8,7 @@ using StepWise.Management.Domain.CatalogSteps;
 using StepWise.Management.Domain.Targets;
 using StepWise.Management.Domain.TestRuns;
 using StepWise.Management.Domain.Workflows;
+using static StepWise.Management.Domain.TestRuns.WorkflowRunCommands;
 
 namespace StepWise.Management;
 
@@ -120,8 +121,8 @@ public class WorkflowExecutionService : BackgroundService
 
             await _runHandler.ExecuteAsync(
                 batch,
-                WorkflowRunAggregate.DeserializeCommand,
-                WorkflowRunAggregate.DeserializeEvent);
+                ReflectionDeserializer.ForCommands<WorkflowRunCommands>(),
+                ReflectionDeserializer.ForEvents<WorkflowRunEvent>());
 
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync(cancellationToken);
@@ -157,8 +158,8 @@ public class WorkflowExecutionService : BackgroundService
 
                 await _runHandler.ExecuteAsync(
                     batch,
-                    WorkflowRunAggregate.DeserializeCommand,
-                    WorkflowRunAggregate.DeserializeEvent);
+                    ReflectionDeserializer.ForCommands<WorkflowRunCommands>(),
+                    ReflectionDeserializer.ForEvents<WorkflowRunEvent>());
 
                 await conn.ExecuteAsync(
                     "UPDATE outbox SET processed_at = now(), last_error = @error WHERE id = @id",
@@ -180,8 +181,12 @@ public class WorkflowExecutionService : BackgroundService
         if (workflowEvents.Count == 0)
             throw new InvalidOperationException($"Workflow '{workflowId}' not found.");
 
+        var deserializeWorkflowEvent    = ReflectionDeserializer.ForEvents<WorkflowEvent>();
+        var deserializeCatalogStepEvent = ReflectionDeserializer.ForEvents<CatalogStepEvent>();
+        var deserializeTargetEvent      = ReflectionDeserializer.ForEvents<TargetEvent>();
+
         var workflowState = Aggregate.Fold<WorkflowState, WorkflowEvent>(
-            workflowEvents.Select(e => WorkflowAggregate.DeserializeEvent(e.EventType, e.Payload)),
+            workflowEvents.Select(e => deserializeWorkflowEvent(e.EventType, e.Payload)),
             WorkflowAggregate.Apply)!;
 
         var contracts = new Dictionary<string, Walkthrough.Json.StepContractDefinition>(StringComparer.OrdinalIgnoreCase);
@@ -196,7 +201,7 @@ public class WorkflowExecutionService : BackgroundService
                 throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' not found.");
 
             var catalogStep = Aggregate.Fold<CatalogStepState, CatalogStepEvent>(
-                catalogStepEvents.Select(e => CatalogStepAggregate.DeserializeEvent(e.EventType, e.Payload)),
+                catalogStepEvents.Select(e => deserializeCatalogStepEvent(e.EventType, e.Payload)),
                 CatalogStepAggregate.Apply);
             if (catalogStep == null)
                 throw new InvalidOperationException($"Catalog step '{workflowStep.CatalogStepId}' could not be folded.");
@@ -207,7 +212,7 @@ public class WorkflowExecutionService : BackgroundService
             if (targetEvents.Count > 0 && !targetBaseUrls.ContainsKey(catalogStep.TargetId))
             {
                 var targetState = Aggregate.Fold<TargetState, TargetEvent>(
-                    targetEvents.Select(e => TargetAggregate.DeserializeEvent(e.EventType, e.Payload)),
+                    targetEvents.Select(e => deserializeTargetEvent(e.EventType, e.Payload)),
                     TargetAggregate.Apply);
                 if (targetState != null)
                     targetBaseUrls[catalogStep.TargetId] = targetState.BaseUrl;

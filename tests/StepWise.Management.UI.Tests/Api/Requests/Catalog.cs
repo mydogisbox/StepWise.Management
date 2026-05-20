@@ -91,19 +91,23 @@ public class GetCatalogStep : HttpStep<GetCatalogRequest, CatalogResponse, GetCa
 
 // ── GET /catalogs ─────────────────────────────────────────────────────────────
 
-public record ListCatalogsRequest() : WorkflowRequest<CatalogResponse[], ListCatalogsRequest>, IWorkflowRequest
+public record ListCatalogsRequest() : WorkflowRequest<PagedResponse<CatalogResponse>, ListCatalogsRequest>, IWorkflowRequest
 {
     public static string StepName => "listCatalogs";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
+    public IFieldValue<int>    Page         { get; init; } = Static(1);
+    public IFieldValue<int>    PageSize     { get; init; } = Static(10);
 }
 
-public class ListCatalogsStep : HttpStep<ListCatalogsRequest, CatalogResponse[], ListCatalogsStep>, IHttpStep
+public class ListCatalogsStep : HttpStep<ListCatalogsRequest, PagedResponse<CatalogResponse>, ListCatalogsStep>, IHttpStep
 {
     public static HttpMethod Method => HttpMethod.Get;
     public static string     Path   => "/catalogs";
 
     public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
     {
-        ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false"
+        ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false",
+        ["page"]         = resolvedFields["Page"]?.ToString() ?? "1",
+        ["pageSize"]     = resolvedFields["PageSize"]?.ToString() ?? "10"
     };
 }

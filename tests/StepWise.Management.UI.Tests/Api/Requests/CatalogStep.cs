@@ -23,7 +23,7 @@ public record UpsertStepCommand() : CatalogStepCommand<UpsertStepOutput>
     public IFieldValue<string>  CatalogId { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>("CreateCatalogCommand").Id);
     public IFieldValue<string>  StepName  { get; init; } = Generators.RandomName();
     public IFieldValue<string>  TargetId  { get; init; } = From(ctx =>
-        ctx.Get<TargetResponse[]>("listTargets").Single(t => t.Name == ctx.Get<CreateTargetOutput>("CreateTargetCommand").Name).Id);
+        ctx.Get<PagedResponse<TargetResponse>>("listTargets").Items.Single(t => t.Name == ctx.Get<CreateTargetOutput>("CreateTargetCommand").Name).Id);
     public IFieldValue<string>  Method          { get; init; } = Static("GET");
     public IFieldValue<string>  Path            { get; init; } = Static("/api/ping");
     public IFieldValue<object?> Defaults        { get; init; } = Static<object?>(null);

@@ -132,7 +132,7 @@ public class Catalog_16_Archive_ExcludedFromList : ManagementTestBase
         await ExecuteAsync(new PostCatalogCommandsRequest());
         var catalogs = await ExecuteAsync(new ListCatalogsRequest());
 
-        Assert.DoesNotContain(catalogs, c => c.Name == create.Name);
+        Assert.DoesNotContain(catalogs.Items, c => c.Name == create.Name);
     }
 }
 
@@ -146,7 +146,29 @@ public class Catalog_17_Archive_IncludedInListWhenShowArchived : ManagementTestB
         await ExecuteAsync(new PostCatalogCommandsRequest());
         var catalogs = await ExecuteAsync(new ListCatalogsRequest() with { ShowArchived = Static("true") });
 
-        var catalog = catalogs.Single(c => c.Id == create.Id);
+        var catalog = catalogs.Items.Single(c => c.Id == create.Id);
         Assert.True(catalog.IsArchived);
+    }
+}
+
+public class Catalog_22_Paging_PageSizeIsRespected : ManagementTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            await BuildAsync(new CreateCatalogCommand());
+            await ExecuteAsync(new PostCatalogCommandsRequest());
+        }
+
+        var page1 = await ExecuteAsync(new ListCatalogsRequest() with { PageSize = Static(2) });
+        Assert.Equal(2, page1.Items.Length);
+        Assert.True(page1.TotalPages >= 2);
+        Assert.Equal(2, page1.PageSize);
+
+        var page2 = await ExecuteAsync(new ListCatalogsRequest() with { Page = Static(2), PageSize = Static(2) });
+        Assert.True(page2.Items.Length >= 1);
+        Assert.True(page2.Items.All(c => page1.Items.All(c1 => c1.Id != c.Id)));
     }
 }
