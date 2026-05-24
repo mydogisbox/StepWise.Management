@@ -179,6 +179,16 @@ public static class Setups
         return workflow.Name;
     }
 
+    public static async Task<(string TargetId, string CatalogId)> SetupCatalogAsync(WorkflowRunner runner)
+    {
+        var target = await runner.BuildAsync(new CreateTargetCommand());
+        await runner.ExecuteAsync(new PostTargetCommandsRequest());
+        await runner.ExecuteAsync(new ListTargetsRequest());
+        var catalog = await runner.BuildAsync(new CreateCatalogCommand());
+        await runner.ExecuteAsync(new PostCatalogCommandsRequest());
+        return (target.Id, catalog.Id);
+    }
+
     public static async Task SetupCatalogWithStepAsync(WorkflowRunner runner)
     {
         var target = await runner.BuildAsync(new CreateTargetCommand());

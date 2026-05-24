@@ -8,8 +8,6 @@ public class Target_Archive_IsArchivedTrue : ManagementTestBase
     public async Task Test()
     {
         await BuildAsync(new CreateTargetCommand());
-        await ExecuteAsync(new PostTargetCommandsRequest());
-
         await BuildAsync(new ArchiveTargetCommand());
         await ExecuteAsync(new PostTargetCommandsRequest());
 

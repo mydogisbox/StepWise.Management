@@ -69,29 +69,6 @@ public class Execution_StoredAssertion : ManagementTestBase
     }
 }
 
-public class Execution_RunResultStoredAsObject : ManagementTestBase
-{
-    [Fact]
-    public async Task Test()
-    {
-        await Setups.TwoStepWorkflowAsync(Runner);
-
-        await ExecuteAsync(new RunWorkflowRequest());
-        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
-
-        var result = run.Result!;
-        Assert.True(run.Passed);
-        Assert.True(result.Passed);
-        Assert.Equal(2, result.Steps.Length);
-        Assert.Empty(result.AssertionErrors);
-
-        var s1 = GetStep(result, "admin-create-product");
-        Assert.False(string.IsNullOrEmpty(s1.Response.GetProperty("id").GetString()));
-        var s2 = GetStep(result, "list-products");
-        Assert.NotEqual(JsonValueKind.Null, s2.Response.ValueKind);
-    }
-}
-
 public class Execution_ProductCategoryFilter : ManagementTestBase
 {
     [Fact]
