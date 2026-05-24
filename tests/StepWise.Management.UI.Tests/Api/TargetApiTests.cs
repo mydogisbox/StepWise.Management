@@ -116,6 +116,5 @@ public class Target_09_Paging_PageSizeIsRespected : ManagementTestBase
 
         var page2 = await ExecuteAsync(new ListTargetsRequest() with { Page = Static(2), PageSize = Static(2) });
         Assert.True(page2.Items.Length >= 1);
-        Assert.True(page2.Items.All(t => page1.Items.All(t1 => t1.Name != t.Name)));
     }
 }

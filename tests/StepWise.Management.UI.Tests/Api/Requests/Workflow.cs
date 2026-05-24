@@ -84,8 +84,8 @@ public record PostWorkflowCommandsRequest() : WorkflowRequest<WorkflowCommandSuc
 {
     public static string StepName => "postWorkflowCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.HasCapture("CreateWorkflowCommand") ? ctx.Get<CreateWorkflowOutput>("CreateWorkflowCommand").Id :
-                                                  ctx.Get<WorkflowCommandSuccess[]>("postWorkflowCommands")[0].AggregateId);
+        ctx.GetOrDefault<CreateWorkflowOutput>("CreateWorkflowCommand")?.Id ??
+        ctx.Get<WorkflowCommandSuccess[]>("postWorkflowCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<WorkflowCommand>());
 }
 
@@ -192,7 +192,7 @@ public class RunWorkflowStep : HttpStep<RunWorkflowRequest, RunWorkflowResponse,
 
 // ── GET /runs/{runId} ─────────────────────────────────────────────────────────
 
-public record RunStepResult(string StepName, JsonElement Response);
+public record RunStepResult(string StepName, JsonElement? Request, JsonElement Response);
 public record RunResult(bool Passed, RunStepResult[] Steps, string[] AssertionErrors);
 public record RunResponse(string Id, string WorkflowId, string Status, bool? Passed, RunResult? Result, string? Error);
 

@@ -17,6 +17,7 @@ DB_PASS="postgres"
 MGMT_DLL="src/StepWise.Management/bin/Debug/net10.0/StepWise.Management.dll"
 EXAMPLE_DLL="ExampleApi/bin/Debug/net10.0/ExampleApi.dll"
 TEST_DLL="tests/StepWise.Management.UI.Tests/bin/Debug/net10.0/StepWise.Management.UI.Tests.dll"
+API_STARTED_MARKER=".api-started"
 
 kill_apis() {
   pkill -f "project src/StepWise.Management" 2>/dev/null || true
@@ -26,6 +27,13 @@ kill_apis() {
 apis_up() {
   curl -fs "$API_URL/api/ping" >/dev/null 2>&1 && \
   curl -fs "$EXAMPLE_URL/products" >/dev/null 2>&1
+}
+
+api_dll_stale() {
+  [ ! -f "$API_STARTED_MARKER" ] && return 0
+  [ "$MGMT_DLL"   -nt "$API_STARTED_MARKER" ] && return 0
+  [ "$EXAMPLE_DLL" -nt "$API_STARTED_MARKER" ] && return 0
+  return 1
 }
 
 needs_rebuild() {
@@ -126,7 +134,7 @@ fi
 
 ensure_db
 
-if apis_up && [ "$REBUILT" = false ]; then
+if apis_up && [ "$REBUILT" = false ] && ! api_dll_stale; then
   echo "→ APIs already running and up to date."
   echo "→ Running migrations..."
   run_migrations
@@ -152,6 +160,11 @@ else
   wait_for "Example API" "$EXAMPLE_URL/products" &
   W2=$!
   wait $W1 $W2
+
+  echo "→ Warming up DB connection pool..."
+  curl -fs "$API_URL/targets" >/dev/null 2>&1 || true
+
+  touch "$API_STARTED_MARKER"
 fi
 
 # ── Tests ─────────────────────────────────────────────────────────────────────

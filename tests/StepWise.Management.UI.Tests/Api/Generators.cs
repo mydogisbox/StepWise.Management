@@ -24,7 +24,6 @@ public static class Generators
         {
             var adj  = _adjectives[Random.Shared.Next(_adjectives.Length)];
             var noun = _nouns[Random.Shared.Next(_nouns.Length)];
-            var num  = Random.Shared.Next(100, 1000);
-            return $"{adj}-{noun}-{num}";
+            return $"{adj}-{noun}-{Guid.NewGuid():N}";
         });
 }

@@ -40,8 +40,8 @@ public record PostCatalogCommandsRequest() : WorkflowRequest<CatalogCommandSucce
 {
     public static string StepName => "postCatalogCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.HasCapture("CreateCatalogCommand") ? ctx.Get<CreateCatalogOutput>("CreateCatalogCommand").Id :
-                                                 ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
+        ctx.GetOrDefault<CreateCatalogOutput>("CreateCatalogCommand")?.Id ??
+        ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<CatalogCommand>());
 }
 

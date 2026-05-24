@@ -45,9 +45,9 @@ public record PostTargetCommandsRequest() : WorkflowRequest<CommandSuccess[], Po
 {
     public static string StepName => "postTargetCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.HasCapture("CreateTargetCommand") ? ctx.Get<CreateTargetOutput>("CreateTargetCommand").Id :
-        ctx.HasCapture("getTarget")           ? ctx.Get<TargetResponse>("getTarget").Id :
-                                                ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
+        ctx.GetOrDefault<CreateTargetOutput>("CreateTargetCommand")?.Id ??
+        ctx.GetOrDefault<TargetResponse>("getTarget")?.Id ??
+        ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<TargetCommand>());
 }
 

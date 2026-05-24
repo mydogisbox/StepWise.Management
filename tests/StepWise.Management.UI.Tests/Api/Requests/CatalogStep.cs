@@ -46,8 +46,8 @@ public record PostCatalogStepCommandsRequest() : WorkflowRequest<CatalogStepComm
 {
     public static string StepName => "postCatalogStepCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.HasCapture("UpsertStepCommand") ? ctx.Get<UpsertStepOutput>("UpsertStepCommand").Id :
-                                              ctx.Get<CatalogStepCommandSuccess[]>("postCatalogStepCommands")[0].AggregateId);
+        ctx.GetOrDefault<UpsertStepOutput>("UpsertStepCommand")?.Id ??
+        ctx.Get<CatalogStepCommandSuccess[]>("postCatalogStepCommands")[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<CatalogStepCommand>());
 }
 

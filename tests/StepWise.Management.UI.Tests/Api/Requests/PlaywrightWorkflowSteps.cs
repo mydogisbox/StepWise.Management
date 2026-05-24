@@ -16,8 +16,8 @@ internal static class PagedUiHelper
         while (true)
         {
             if (await predicate()) return true;
-            var nextBtn = await page.QuerySelectorAsync($"#{pagerId} button:last-child");
-            if (nextBtn == null || await nextBtn.IsDisabledAsync()) return false;
+            var nextBtn = page.Locator($"#{pagerId} button:last-child");
+            if (await nextBtn.CountAsync() == 0 || await nextBtn.IsDisabledAsync()) return false;
             currentPage++;
             await nextBtn.ClickAsync();
             await page.WaitForFunctionAsync(

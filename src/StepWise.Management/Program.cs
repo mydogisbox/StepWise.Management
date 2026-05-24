@@ -112,23 +112,20 @@ app.MapGet("/targets", async (bool showArchived = false, int page = 1, int pageS
     var where = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
-    long total;
-    await using (var countCmd = conn.CreateCommand())
-    {
-        countCmd.CommandText = $"SELECT COUNT(*) FROM target_summaries{where}";
-        if (filterName) countCmd.Parameters.Add(new NpgsqlParameter { Value = name });
-        total = (long)(await countCmd.ExecuteScalarAsync())!;
-    }
     await using var cmd = conn.CreateCommand();
     if (filterName) cmd.Parameters.Add(new NpgsqlParameter { Value = name });
     var p = cmd.Parameters.Count + 1;
-    cmd.CommandText = $"SELECT id, name, base_url, is_archived, created_at FROM target_summaries{where} ORDER BY created_at DESC LIMIT ${p} OFFSET ${p + 1}";
+    cmd.CommandText = $"SELECT id, name, base_url, is_archived, created_at, COUNT(*) OVER() FROM target_summaries{where} ORDER BY created_at DESC LIMIT ${p} OFFSET ${p + 1}";
     cmd.Parameters.Add(new NpgsqlParameter { Value = pageSize });
     cmd.Parameters.Add(new NpgsqlParameter { Value = (page - 1) * pageSize });
     var items = new List<object>();
+    long total = 0;
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
+    {
         items.Add(new { id = reader.GetString(0), name = reader.GetString(1), baseUrl = reader.GetString(2), isArchived = reader.GetBoolean(3), createdAt = reader.GetFieldValue<DateTimeOffset>(4) });
+        total = reader.GetInt64(5);
+    }
     return Results.Ok(new { items, total, page, pageSize, totalPages = (int)Math.Ceiling((double)total / pageSize) });
 });
 
@@ -139,20 +136,18 @@ app.MapGet("/catalogs", async (bool showArchived = false, int page = 1, int page
     var where = showArchived ? "" : " WHERE is_archived = false";
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
-    long total;
-    await using (var countCmd = conn.CreateCommand())
-    {
-        countCmd.CommandText = $"SELECT COUNT(*) FROM catalog_summaries{where}";
-        total = (long)(await countCmd.ExecuteScalarAsync())!;
-    }
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = $"SELECT id, name, description, is_archived FROM catalog_summaries{where} ORDER BY created_at DESC LIMIT $1 OFFSET $2";
+    cmd.CommandText = $"SELECT id, name, description, is_archived, COUNT(*) OVER() FROM catalog_summaries{where} ORDER BY created_at DESC LIMIT $1 OFFSET $2";
     cmd.Parameters.Add(new NpgsqlParameter { Value = pageSize });
     cmd.Parameters.Add(new NpgsqlParameter { Value = (page - 1) * pageSize });
     var items = new List<object>();
+    long total = 0;
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
+    {
         items.Add(new { id = reader.GetString(0), name = reader.GetString(1), description = reader.GetString(2), isArchived = reader.GetBoolean(3) });
+        total = reader.GetInt64(4);
+    }
     return Results.Ok(new { items, total, page, pageSize, totalPages = (int)Math.Ceiling((double)total / pageSize) });
 });
 
@@ -204,28 +199,39 @@ app.MapGet("/workflows", async (bool showArchived = false, int page = 1, int pag
     pageSize = Math.Clamp(pageSize, 1, 100);
     var filterName = !string.IsNullOrEmpty(name);
     var conditions = new List<string>();
-    if (!showArchived) conditions.Add("archived = false");
-    if (filterName)    conditions.Add("name = $1");
+    if (!showArchived) conditions.Add("w.archived = false");
+    if (filterName)    conditions.Add("w.name = $1");
     var where = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
-    long total;
-    await using (var countCmd = conn.CreateCommand())
-    {
-        countCmd.CommandText = $"SELECT COUNT(*) FROM workflow_summaries{where}";
-        if (filterName) countCmd.Parameters.Add(new NpgsqlParameter { Value = name! });
-        total = (long)(await countCmd.ExecuteScalarAsync())!;
-    }
     await using var cmd = conn.CreateCommand();
     if (filterName) cmd.Parameters.Add(new NpgsqlParameter { Value = name! });
     var p = cmd.Parameters.Count + 1;
-    cmd.CommandText = $"SELECT id, name, description, archived FROM workflow_summaries{where} ORDER BY created_at DESC LIMIT ${p} OFFSET ${p + 1}";
+    cmd.CommandText = $@"
+        SELECT w.id, w.name, w.description, w.archived, COUNT(*) OVER(),
+               COALESCE(r.run_count, 0), COALESCE(r.pass_count, 0)
+        FROM workflow_summaries w
+        LEFT JOIN (
+            SELECT workflow_id,
+                   COUNT(*) AS run_count,
+                   SUM(CASE WHEN passed THEN 1 ELSE 0 END) AS pass_count
+            FROM test_run_summaries
+            WHERE passed IS NOT NULL
+            GROUP BY workflow_id
+        ) r ON r.workflow_id = w.id
+        {where}
+        ORDER BY w.created_at DESC
+        LIMIT ${p} OFFSET ${p + 1}";
     cmd.Parameters.Add(new NpgsqlParameter { Value = pageSize });
     cmd.Parameters.Add(new NpgsqlParameter { Value = (page - 1) * pageSize });
     var items = new List<object>();
+    long total = 0;
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
-        items.Add(new { id = reader.GetString(0), name = reader.GetString(1), description = reader.GetString(2), isArchived = reader.GetBoolean(3) });
+    {
+        items.Add(new { id = reader.GetString(0), name = reader.GetString(1), description = reader.GetString(2), isArchived = reader.GetBoolean(3), runCount = reader.GetInt64(5), passCount = reader.GetInt64(6) });
+        total = reader.GetInt64(4);
+    }
     return Results.Ok(new { items, total, page, pageSize, totalPages = (int)Math.Ceiling((double)total / pageSize) });
 });
 
@@ -271,15 +277,9 @@ app.MapGet("/runs", async (int page = 1, int pageSize = 10) =>
     pageSize = Math.Clamp(pageSize, 1, 100);
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
-    long total;
-    await using (var countCmd = conn.CreateCommand())
-    {
-        countCmd.CommandText = "SELECT COUNT(*) FROM test_run_summaries";
-        total = (long)(await countCmd.ExecuteScalarAsync())!;
-    }
     await using var cmd = conn.CreateCommand();
     cmd.CommandText = @"
-        SELECT r.id, r.workflow_id, w.name, r.passed, r.started_at, r.duration_ms
+        SELECT r.id, r.workflow_id, w.name, r.passed, r.started_at, r.duration_ms, COUNT(*) OVER()
         FROM test_run_summaries r
         LEFT JOIN workflow_summaries w ON w.id = r.workflow_id
         ORDER BY r.started_at DESC
@@ -287,8 +287,10 @@ app.MapGet("/runs", async (int page = 1, int pageSize = 10) =>
     cmd.Parameters.Add(new NpgsqlParameter { Value = pageSize });
     cmd.Parameters.Add(new NpgsqlParameter { Value = (page - 1) * pageSize });
     var items = new List<object>();
+    long total = 0;
     await using var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
+    {
         items.Add(new
         {
             id = reader.GetString(0),
@@ -298,6 +300,8 @@ app.MapGet("/runs", async (int page = 1, int pageSize = 10) =>
             startedAt = reader.GetFieldValue<DateTimeOffset>(4),
             durationMs = reader.IsDBNull(5) ? (long?)null : reader.GetInt64(5)
         });
+        total = reader.GetInt64(6);
+    }
     return Results.Ok(new { items, total, page, pageSize, totalPages = (int)Math.Ceiling((double)total / pageSize) });
 });
 

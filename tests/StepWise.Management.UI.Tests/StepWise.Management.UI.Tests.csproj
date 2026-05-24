@@ -16,8 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Walkthrough.Core" Version="0.4.4" />
-    <PackageReference Include="Walkthrough.Http" Version="0.4.4" />
+    <PackageReference Include="Walkthrough.Core" Version="0.5.2" />
+    <PackageReference Include="Walkthrough.Http" Version="0.5.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -480,11 +480,12 @@ async function openCatalogDetail(id) {
   currentCatalogId = id;
   currentEditingStepId = null;
   try {
-    const [state, steps, targets] = await Promise.all([
+    const [state, steps, targetsResp] = await Promise.all([
       api('GET', `/catalogs/${id}`),
-      api('GET', `/catalog-steps?catalogId=${id}`),
-      api('GET', '/targets')
+      api('GET', `/catalog-steps?catalogId=${id}&showArchived=true`),
+      api('GET', '/targets?pageSize=100')
     ]);
+    const targets = targetsResp.items ?? targetsResp;
     currentCatalogState = state;
     currentCatalogTargets = targets;
     document.getElementById('catalog-detail-title').textContent = state.name;
@@ -724,15 +725,21 @@ async function loadWorkflows(page = pages.workflows) {
   const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}) });
   try {
     const data = await api('GET', `/workflows?${q}`);
-    const rows = data.items.map(w => `<tr class="hover:bg-gray-50 ${w.isArchived ? 'opacity-60' : ''}">
-      ${td(`<span class="font-medium text-gray-900">${esc(w.name)}</span> ${w.isArchived ? archivedBadge() : ''}`)}
-      ${td(`<span class="text-gray-500">${esc(w.description || '—')}</span>`)}
-      ${tdActions(
-        actionLink('Edit', `openWorkflowDetail('${esc(w.id)}')`),
-        actionLink('Run', `quickRun('${esc(w.id)}')`, 'green')
-      )}
-    </tr>`);
-    document.getElementById('workflow-list').innerHTML = table(['Name', 'Description', ''], rows);
+    const rows = data.items.map(w => {
+      const runs = w.runCount ?? 0;
+      const passRate = runs > 0 ? Math.round((w.passCount / runs) * 100) + '%' : '—';
+      return `<tr class="hover:bg-gray-50 ${w.isArchived ? 'opacity-60' : ''}">
+        ${td(`<span class="font-medium text-gray-900">${esc(w.name)}</span> ${w.isArchived ? archivedBadge() : ''}`)}
+        ${td(`<span class="text-gray-500">${esc(w.description || '—')}</span>`)}
+        ${td(`<span class="text-gray-700">${runs}</span>`, 'text-center')}
+        ${td(`<span class="text-gray-700">${passRate}</span>`, 'text-center')}
+        ${tdActions(
+          actionLink('Edit', `openWorkflowDetail('${esc(w.id)}')`),
+          actionLink('Run', `quickRun('${esc(w.id)}')`, 'green')
+        )}
+      </tr>`;
+    });
+    document.getElementById('workflow-list').innerHTML = table(['Name', 'Description', 'Runs', 'Pass %', ''], rows);
     renderPager('workflows', page, data.totalPages, 'loadWorkflows');
   } catch(e) { showToast(e.message, true); showLoadError('workflow-list', e.message); }
 }
@@ -1039,17 +1046,21 @@ async function viewRun(id) {
 
     if (steps.length) {
       html += `<div><p class="text-sm font-medium text-gray-700 mb-2">Steps (${steps.length})</p><div class="space-y-1">`;
-      html += steps.map((s, i) => `
+      html += steps.map((s, i) => {
+        const reqSection = s.request != null
+          ? `<div><p class="text-xs font-medium text-gray-500 mb-1">Request</p><pre class="text-xs bg-gray-50 rounded p-2 overflow-auto max-h-48 whitespace-pre-wrap">${esc(JSON.stringify(s.request, null, 2))}</pre></div>`
+          : '';
+        const respSection = `<div><p class="text-xs font-medium text-gray-500 mb-1">Response</p><pre class="text-xs bg-gray-50 rounded p-2 overflow-auto max-h-48 whitespace-pre-wrap">${esc(JSON.stringify(s.response ?? s, null, 2))}</pre></div>`;
+        return `
         <details class="border rounded bg-white">
           <summary class="px-3 py-2 cursor-pointer text-sm flex items-center gap-2 list-none">
             <span class="text-gray-400 text-xs">${i + 1}.</span>
             <span class="font-medium">${esc(s.stepName ?? s.step ?? '')}</span>
             ${s.passed != null ? passBadge(s.passed) : ''}
           </summary>
-          <div class="px-3 pb-3 pt-1">
-            <pre class="text-xs bg-gray-50 rounded p-2 overflow-auto max-h-48 whitespace-pre-wrap">${esc(JSON.stringify(s.response ?? s, null, 2))}</pre>
-          </div>
-        </details>`).join('');
+          <div class="px-3 pb-3 pt-1 space-y-2">${reqSection}${respSection}</div>
+        </details>`;
+      }).join('');
       html += '</div></div>';
     }
 

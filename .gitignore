@@ -20,9 +20,10 @@ appsettings.Development.json
 # Test logs
 test-api.log
 test-example.log
+.api-started
 
 # Walkthrough docs
-tests/StepWise.Management.UI.Tests/.claude/
+**/.claude/walkthrough/
 
 # Claude Code worktrees
 .claude/worktrees/
