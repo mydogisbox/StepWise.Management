@@ -4,9 +4,8 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Workflow_Archive_ExcludedFromList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_Archive_ExcludedFromList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -25,9 +24,8 @@ public class Workflow_Archive_ExcludedFromList_ViaUI : ManagementTestBase, IUseP
     }
 }
 
-public class Workflow_Archive_IncludedWhenShowArchived_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_Archive_IncludedWhenShowArchived_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -51,9 +49,8 @@ public class Workflow_Archive_IncludedWhenShowArchived_ViaUI : ManagementTestBas
     }
 }
 
-public class Workflow_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_Paging_PagerAppearsAfterPageSize_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -79,9 +76,8 @@ public class Workflow_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBas
     }
 }
 
-public class Workflow_CreateViaForm_DetailOpens_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_CreateViaForm_DetailOpens_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -104,9 +100,8 @@ public class Workflow_CreateViaForm_DetailOpens_ViaUI : ManagementTestBase, IUse
     }
 }
 
-public class Workflow_Archive_DisappearsFromList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -137,9 +132,8 @@ public class Workflow_Archive_DisappearsFromList_ViaUI : ManagementTestBase, IUs
     }
 }
 
-public class Workflow_AddStep_AppearsInStepsList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_AddStep_AppearsInStepsList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -169,9 +163,8 @@ public class Workflow_AddStep_AppearsInStepsList_ViaUI : ManagementTestBase, IUs
     }
 }
 
-public class Workflow_RemoveStep_DisappearsFromList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_RemoveStep_DisappearsFromList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -199,9 +192,8 @@ public class Workflow_RemoveStep_DisappearsFromList_ViaUI : ManagementTestBase, 
     }
 }
 
-public class Workflow_AddEqualAssertion_AppearsInList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_AddEqualAssertion_AppearsInList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -236,9 +228,8 @@ public class Workflow_AddEqualAssertion_AppearsInList_ViaUI : ManagementTestBase
     }
 }
 
-public class Workflow_AddNotEmptyAssertion_AppearsInList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_AddNotEmptyAssertion_AppearsInList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -272,15 +263,8 @@ public class Workflow_AddNotEmptyAssertion_AppearsInList_ViaUI : ManagementTestB
     }
 }
 
-public class Runs_List_ShowsCompletedRun_ViaUI : ManagementTestBase, IUsePlaywrightWithTarget
+public class Runs_List_ShowsCompletedRun_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -297,9 +281,8 @@ public class Runs_List_ShowsCompletedRun_ViaUI : ManagementTestBase, IUsePlaywri
     }
 }
 
-public class Catalog_CreateViaForm_AppearsInList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_CreateViaForm_AppearsInList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -320,9 +303,8 @@ public class Catalog_CreateViaForm_AppearsInList_ViaUI : ManagementTestBase, IUs
     }
 }
 
-public class Catalog_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_Paging_PagerAppearsAfterPageSize_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -348,9 +330,8 @@ public class Catalog_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBase
     }
 }
 
-public class Catalog_OpenDetail_ShowsNamePrefilled_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_OpenDetail_ShowsNamePrefilled_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -376,9 +357,8 @@ public class Catalog_OpenDetail_ShowsNamePrefilled_ViaUI : ManagementTestBase, I
     }
 }
 
-public class Catalog_Edit_SaveUpdatesTitle_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_Edit_SaveUpdatesTitle_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -404,9 +384,8 @@ public class Catalog_Edit_SaveUpdatesTitle_ViaUI : ManagementTestBase, IUsePlayw
     }
 }
 
-public class Catalog_Archive_DisappearsFromList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -436,9 +415,8 @@ public class Catalog_Archive_DisappearsFromList_ViaUI : ManagementTestBase, IUse
     }
 }
 
-public class Catalog_AddStep_AppearsInStepsList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_AddStep_AppearsInStepsList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -472,9 +450,8 @@ public class Catalog_AddStep_AppearsInStepsList_ViaUI : ManagementTestBase, IUse
     }
 }
 
-public class Catalog_EditStep_FormPreFills_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_EditStep_FormPreFills_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -515,9 +492,8 @@ public class Catalog_EditStep_FormPreFills_ViaUI : ManagementTestBase, IUsePlayw
     }
 }
 
-public class Catalog_ArchiveStep_BadgeAppearsAndDisappears_ViaUI : ManagementTestBase, IUsePlaywright
+public class Catalog_ArchiveStep_BadgeAppearsAndDisappears_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -556,9 +532,8 @@ public class Catalog_ArchiveStep_BadgeAppearsAndDisappears_ViaUI : ManagementTes
     }
 }
 
-public class Runs_ViewDetail_ShowsPassBadgeAndSteps_ViaUI : ManagementTestBase, IUsePlaywright
+public class Runs_ViewDetail_ShowsPassBadgeAndSteps_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -581,9 +556,8 @@ public class Runs_ViewDetail_ShowsPassBadgeAndSteps_ViaUI : ManagementTestBase, 
     }
 }
 
-public class Workflow_RunStats_PassedRun_ShowsCountAndRate_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_RunStats_PassedRun_ShowsCountAndRate_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]
@@ -605,9 +579,8 @@ public class Workflow_RunStats_PassedRun_ShowsCountAndRate_ViaUI : ManagementTes
     }
 }
 
-public class Workflow_RunStats_FailedRun_ShowsZeroPassRate_ViaUI : ManagementTestBase, IUsePlaywright
+public class Workflow_RunStats_FailedRun_ShowsZeroPassRate_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
 
 
     [Fact]

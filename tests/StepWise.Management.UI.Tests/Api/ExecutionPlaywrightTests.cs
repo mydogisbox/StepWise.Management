@@ -1,17 +1,7 @@
-using Microsoft.Playwright;
-using Walkthrough.Core;
-
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Execution_VoucherValidation_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_VoucherValidation_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -21,15 +11,8 @@ public class Execution_VoucherValidation_ViaUI : ExecutionTestBase, IUsePlaywrig
     }
 }
 
-public class Execution_RunWorkflow_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_RunWorkflow_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -39,15 +22,8 @@ public class Execution_RunWorkflow_ViaUI : ExecutionTestBase, IUsePlaywrightWith
     }
 }
 
-public class Execution_CrossReference_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_CrossReference_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -57,15 +33,8 @@ public class Execution_CrossReference_ViaUI : ExecutionTestBase, IUsePlaywrightW
     }
 }
 
-public class Execution_StoredAssertion_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_StoredAssertion_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -75,15 +44,8 @@ public class Execution_StoredAssertion_ViaUI : ExecutionTestBase, IUsePlaywright
     }
 }
 
-public class Execution_ProductCategoryFilter_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_ProductCategoryFilter_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -93,15 +55,8 @@ public class Execution_ProductCategoryFilter_ViaUI : ExecutionTestBase, IUsePlay
     }
 }
 
-public class Execution_InStockFilter_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_InStockFilter_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -111,15 +66,8 @@ public class Execution_InStockFilter_ViaUI : ExecutionTestBase, IUsePlaywrightWi
     }
 }
 
-public class Execution_ReusedExampleWorkflowAssertion_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_ReusedExampleWorkflowAssertion_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {
@@ -129,15 +77,8 @@ public class Execution_ReusedExampleWorkflowAssertion_ViaUI : ExecutionTestBase,
     }
 }
 
-public class Execution_RunFailed_ViaUI : ExecutionTestBase, IUsePlaywrightWithTarget
+public class Execution_RunFailed_ViaUI : PlaywrightWithTargetTestBase
 {
-    public IPage Page { get; set; } = null!;
-    public PlaywrightTarget PwTarget { get; set; } = null!;
-
-
-    protected override WorkflowRunner BuildRunner() =>
-        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
-
     [Fact]
     public async Task Test()
     {

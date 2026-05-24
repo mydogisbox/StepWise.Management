@@ -16,27 +16,29 @@ internal static class SharedBrowser
     public static Task<IBrowser> GetAsync() => _browser.Value;
 }
 
-public interface IUsePlaywright : IAsyncLifetime
+public abstract class PlaywrightTestBase : ManagementTestBase, IAsyncLifetime
 {
-    IPage Page { get; set; }
+    protected IPage Page { get; private set; } = null!;
 
-    async Task IAsyncLifetime.InitializeAsync()
+    public virtual async Task InitializeAsync()
     {
         var browser = await SharedBrowser.GetAsync();
         Page = await browser.NewPageAsync();
     }
 
-    async Task IAsyncLifetime.DisposeAsync() => await Page.CloseAsync();
+    public async Task DisposeAsync() => await Page.CloseAsync();
 }
 
-public interface IUsePlaywrightWithTarget : IUsePlaywright
+public abstract class PlaywrightWithTargetTestBase : PlaywrightTestBase
 {
-    PlaywrightTarget PwTarget { get; set; }
+    protected PlaywrightTarget PwTarget { get; private set; } = null!;
 
-    async Task IAsyncLifetime.InitializeAsync()
+    protected override WorkflowRunner BuildRunner() =>
+        new WorkflowRunner(new WorkflowContext(), PwTarget, ApiTarget);
+
+    public override async Task InitializeAsync()
     {
-        var browser = await SharedBrowser.GetAsync();
-        Page = await browser.NewPageAsync();
+        await base.InitializeAsync();
         PwTarget = new PlaywrightTarget(Page)
             .Register<PlaywrightListWorkflowsStep>()
             .Register<PlaywrightRunWorkflowStep>()

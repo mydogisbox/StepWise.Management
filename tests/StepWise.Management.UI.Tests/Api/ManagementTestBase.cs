@@ -46,4 +46,7 @@ public abstract class ManagementTestBase
         int timeoutMs  = 10000)
         where TSelf : WorkflowRequest<TResponse, TSelf>, IWorkflowRequest
         => Runner.PollAsync(request, until, intervalMs, timeoutMs);
+
+    protected static RunStepResult GetStep(RunResult result, string stepName)
+        => result.Steps.Single(s => s.StepName == stepName);
 }

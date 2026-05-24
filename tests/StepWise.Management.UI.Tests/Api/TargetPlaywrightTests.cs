@@ -3,10 +3,8 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Target_Archive_ExcludedFromList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_Archive_ExcludedFromList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -24,10 +22,8 @@ public class Target_Archive_ExcludedFromList_ViaUI : ManagementTestBase, IUsePla
     }
 }
 
-public class Target_Create_HasCreatedAt_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_Create_HasCreatedAt_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -42,10 +38,8 @@ public class Target_Create_HasCreatedAt_ViaUI : ManagementTestBase, IUsePlaywrig
     }
 }
 
-public class Target_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_Paging_PagerAppearsAfterPageSize_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -70,10 +64,8 @@ public class Target_Paging_PagerAppearsAfterPageSize_ViaUI : ManagementTestBase,
     }
 }
 
-public class Target_CreateViaForm_AppearsInList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_CreateViaForm_AppearsInList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -95,10 +87,8 @@ public class Target_CreateViaForm_AppearsInList_ViaUI : ManagementTestBase, IUse
     }
 }
 
-public class Target_Edit_UpdatesInList_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_Edit_UpdatesInList_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -127,10 +117,8 @@ public class Target_Edit_UpdatesInList_ViaUI : ManagementTestBase, IUsePlaywrigh
     }
 }
 
-public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
@@ -163,10 +151,8 @@ public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : ManagementTes
     }
 }
 
-public class Target_ShowArchived_TogglesArchivedRows_ViaUI : ManagementTestBase, IUsePlaywright
+public class Target_ShowArchived_TogglesArchivedRows_ViaUI : PlaywrightTestBase
 {
-    public IPage Page { get; set; } = null!;
-
 
     [Fact]
     public async Task Test()
