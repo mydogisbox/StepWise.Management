@@ -2,7 +2,7 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Target_01_Archive_IsArchivedTrue : ManagementTestBase
+public class Target_Archive_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -18,7 +18,7 @@ public class Target_01_Archive_IsArchivedTrue : ManagementTestBase
     }
 }
 
-public class Target_02_Unarchive_IsArchivedFalse : ManagementTestBase
+public class Target_Unarchive_IsArchivedFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -33,7 +33,7 @@ public class Target_02_Unarchive_IsArchivedFalse : ManagementTestBase
     }
 }
 
-public class Target_03_Update_NameAndBaseUrlUpdated : ManagementTestBase
+public class Target_Update_NameAndBaseUrlUpdated : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -56,7 +56,7 @@ public class Target_03_Update_NameAndBaseUrlUpdated : ManagementTestBase
     }
 }
 
-public class Target_04_Archive_ExcludedFromList : ManagementTestBase
+public class Target_Archive_ExcludedFromList : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -70,7 +70,7 @@ public class Target_04_Archive_ExcludedFromList : ManagementTestBase
     }
 }
 
-public class Target_05_Archive_IncludedInListWhenShowArchived : ManagementTestBase
+public class Target_Archive_IncludedInListWhenShowArchived : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -85,7 +85,7 @@ public class Target_05_Archive_IncludedInListWhenShowArchived : ManagementTestBa
     }
 }
 
-public class Target_06_Create_HasCreatedAt : ManagementTestBase
+public class Target_Create_HasCreatedAt : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -98,7 +98,7 @@ public class Target_06_Create_HasCreatedAt : ManagementTestBase
     }
 }
 
-public class Target_09_Paging_PageSizeIsRespected : ManagementTestBase
+public class Target_Paging_PageSizeIsRespected : ManagementTestBase
 {
     [Fact]
     public async Task Test()

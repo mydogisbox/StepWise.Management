@@ -3,13 +3,13 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public abstract class ExecutionTestBase : WorkflowTestBase
+public abstract class ExecutionTestBase : ManagementTestBase
 {
     protected static RunStepResult GetStep(RunResult result, string stepName)
         => result.Steps.Single(s => s.StepName == stepName);
 }
 
-public class Execution_16_RunWorkflow : ExecutionTestBase
+public class Execution_RunWorkflow : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -31,7 +31,7 @@ public class Execution_16_RunWorkflow : ExecutionTestBase
     }
 }
 
-public class Execution_17_CrossReference : ExecutionTestBase
+public class Execution_CrossReference : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -53,7 +53,7 @@ public class Execution_17_CrossReference : ExecutionTestBase
     }
 }
 
-public class Execution_18_StoredAssertion : ExecutionTestBase
+public class Execution_StoredAssertion : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -75,7 +75,7 @@ public class Execution_18_StoredAssertion : ExecutionTestBase
     }
 }
 
-public class Execution_19_RunResultStoredAsObject : ExecutionTestBase
+public class Execution_RunResultStoredAsObject : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -98,7 +98,7 @@ public class Execution_19_RunResultStoredAsObject : ExecutionTestBase
     }
 }
 
-public class Execution_20_ProductCategoryFilter : ExecutionTestBase
+public class Execution_ProductCategoryFilter : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -120,7 +120,7 @@ public class Execution_20_ProductCategoryFilter : ExecutionTestBase
     }
 }
 
-public class Execution_21_InStockFilter : ExecutionTestBase
+public class Execution_InStockFilter : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -140,7 +140,7 @@ public class Execution_21_InStockFilter : ExecutionTestBase
     }
 }
 
-public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
+public class Execution_RunFailed_StatusIsFailedWithError : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -155,7 +155,7 @@ public class Execution_23_RunFailed_StatusIsFailedWithError : ExecutionTestBase
     }
 }
 
-public class Execution_24_ReusedExampleWorkflowAssertion : ExecutionTestBase
+public class Execution_ReusedExampleWorkflowAssertion : ExecutionTestBase
 {
     // Mirrors example-01-list-products.workflow.json: { "notEmpty": "$listProducts" }
     [Fact]
@@ -173,7 +173,7 @@ public class Execution_24_ReusedExampleWorkflowAssertion : ExecutionTestBase
     }
 }
 
-public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
+public class Execution_VoucherValidationWithAssertions : ExecutionTestBase
 {
     [Fact]
     public async Task Test()
@@ -193,12 +193,12 @@ public class Execution_22_VoucherValidationWithAssertions : ExecutionTestBase
     }
 }
 
-public class Runs_01_List_ShowsCompletedRun : WorkflowTestBase
+public class Runs_List_ShowsCompletedRun : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         var create = await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new AppendStepCommand());
@@ -212,12 +212,12 @@ public class Runs_01_List_ShowsCompletedRun : WorkflowTestBase
     }
 }
 
-public class Runs_03_Paging_PageSizeIsRespected : WorkflowTestBase
+public class Runs_Paging_PageSizeIsRespected : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         var create = await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new AppendStepCommand());

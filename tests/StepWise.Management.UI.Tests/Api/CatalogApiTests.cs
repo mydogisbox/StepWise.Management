@@ -3,7 +3,7 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Catalog_18_CreateCatalog_EmptyName_Returns422 : ManagementTestBase
+public class Catalog_CreateCatalog_EmptyName_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -15,7 +15,7 @@ public class Catalog_18_CreateCatalog_EmptyName_Returns422 : ManagementTestBase
     }
 }
 
-public class Catalog_19_CreateCatalog_DuplicateCreate_Returns422 : ManagementTestBase
+public class Catalog_CreateCatalog_DuplicateCreate_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -30,7 +30,7 @@ public class Catalog_19_CreateCatalog_DuplicateCreate_Returns422 : ManagementTes
     }
 }
 
-public class Catalog_20_ArchiveCatalog_AlreadyArchived_Returns422 : ManagementTestBase
+public class Catalog_ArchiveCatalog_AlreadyArchived_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -46,7 +46,7 @@ public class Catalog_20_ArchiveCatalog_AlreadyArchived_Returns422 : ManagementTe
     }
 }
 
-public class Catalog_21_ArchiveCatalog_DoesNotExist_Returns422 : ManagementTestBase
+public class Catalog_ArchiveCatalog_DoesNotExist_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -61,7 +61,7 @@ public class Catalog_21_ArchiveCatalog_DoesNotExist_Returns422 : ManagementTestB
     }
 }
 
-public class Catalog_02_Create_NameAsserted : ManagementTestBase
+public class Catalog_Create_NameAsserted : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -74,7 +74,7 @@ public class Catalog_02_Create_NameAsserted : ManagementTestBase
     }
 }
 
-public class Catalog_10_UpdateCatalog_NameAndDescriptionUpdated : ManagementTestBase
+public class Catalog_UpdateCatalog_NameAndDescriptionUpdated : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -93,7 +93,7 @@ public class Catalog_10_UpdateCatalog_NameAndDescriptionUpdated : ManagementTest
     }
 }
 
-public class Catalog_11_ArchiveCatalog_IsArchivedTrue : ManagementTestBase
+public class Catalog_ArchiveCatalog_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -107,7 +107,7 @@ public class Catalog_11_ArchiveCatalog_IsArchivedTrue : ManagementTestBase
     }
 }
 
-public class Catalog_12_UnarchiveCatalog_IsArchivedFalse : ManagementTestBase
+public class Catalog_UnarchiveCatalog_IsArchivedFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -122,7 +122,7 @@ public class Catalog_12_UnarchiveCatalog_IsArchivedFalse : ManagementTestBase
     }
 }
 
-public class Catalog_16_Archive_ExcludedFromList : ManagementTestBase
+public class Catalog_Archive_ExcludedFromList : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -136,7 +136,7 @@ public class Catalog_16_Archive_ExcludedFromList : ManagementTestBase
     }
 }
 
-public class Catalog_17_Archive_IncludedInListWhenShowArchived : ManagementTestBase
+public class Catalog_Archive_IncludedInListWhenShowArchived : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -151,7 +151,7 @@ public class Catalog_17_Archive_IncludedInListWhenShowArchived : ManagementTestB
     }
 }
 
-public class Catalog_22_Paging_PageSizeIsRespected : ManagementTestBase
+public class Catalog_Paging_PageSizeIsRespected : ManagementTestBase
 {
     [Fact]
     public async Task Test()

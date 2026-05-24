@@ -179,6 +179,26 @@ public static class Setups
         return workflow.Name;
     }
 
+    public static async Task SetupCatalogWithStepAsync(WorkflowRunner runner)
+    {
+        var target = await runner.BuildAsync(new CreateTargetCommand());
+        await runner.ExecuteAsync(new PostTargetCommandsRequest());
+        await runner.ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
+
+        await runner.BuildAsync(new CreateCatalogCommand());
+        await runner.ExecuteAsync(new PostCatalogCommandsRequest());
+        await runner.BuildAsync(new UpsertStepCommand());
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
+    }
+
+    public static async Task<RunResponse> RunViaUiAsync(WorkflowRunner runner, string workflowName)
+    {
+        var listed = await runner.ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        Assert.Single(listed.Items);
+        await runner.ExecuteAsync(new RunWorkflowRequest());
+        return await runner.PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 500, timeoutMs: 15000);
+    }
+
     public static async Task<string> ArchivedWorkflowAsync(WorkflowRunner runner)
     {
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());

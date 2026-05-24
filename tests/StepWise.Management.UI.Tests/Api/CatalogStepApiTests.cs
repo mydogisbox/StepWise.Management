@@ -4,7 +4,7 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public class Catalog_03_AddStep_AllFieldsCorrect : ManagementTestBase
+public class Catalog_AddStep_AllFieldsCorrect : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -36,7 +36,7 @@ public class Catalog_03_AddStep_AllFieldsCorrect : ManagementTestBase
     }
 }
 
-public class Catalog_04_UpsertStep_UpdatesFields : ManagementTestBase
+public class Catalog_UpsertStep_UpdatesFields : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -77,7 +77,7 @@ public class Catalog_04_UpsertStep_UpdatesFields : ManagementTestBase
     }
 }
 
-public class Catalog_05_ArchiveStep_IsArchivedTrue : ManagementTestBase
+public class Catalog_ArchiveStep_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -98,7 +98,7 @@ public class Catalog_05_ArchiveStep_IsArchivedTrue : ManagementTestBase
     }
 }
 
-public class Catalog_06_ArchiveStep_ExcludedFromList : ManagementTestBase
+public class Catalog_ArchiveStep_ExcludedFromList : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -119,7 +119,7 @@ public class Catalog_06_ArchiveStep_ExcludedFromList : ManagementTestBase
     }
 }
 
-public class Catalog_07_ArchiveStep_IncludedWhenShowArchived : ManagementTestBase
+public class Catalog_ArchiveStep_IncludedWhenShowArchived : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -141,7 +141,7 @@ public class Catalog_07_ArchiveStep_IncludedWhenShowArchived : ManagementTestBas
     }
 }
 
-public class Catalog_08_ErrorCapturesStatus : ManagementTestBase
+public class Catalog_ErrorCapturesStatus : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -159,7 +159,7 @@ public class Catalog_08_ErrorCapturesStatus : ManagementTestBase
     }
 }
 
-public class Catalog_09_SuccessCapturesStatus : ManagementTestBase
+public class Catalog_SuccessCapturesStatus : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -180,7 +180,7 @@ public class Catalog_09_SuccessCapturesStatus : ManagementTestBase
     }
 }
 
-public class Catalog_14_StepShapes_StoredAndReturned : ManagementTestBase
+public class Catalog_StepShapes_StoredAndReturned : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -205,7 +205,7 @@ public class Catalog_14_StepShapes_StoredAndReturned : ManagementTestBase
     }
 }
 
-public class Catalog_15_StepPolling_StoredAndReturned : ManagementTestBase
+public class Catalog_StepPolling_StoredAndReturned : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -232,7 +232,7 @@ public class Catalog_15_StepPolling_StoredAndReturned : ManagementTestBase
     }
 }
 
-public class Catalog_13_UnarchiveStep_IsArchivedFalse : ManagementTestBase
+public class Catalog_UnarchiveStep_IsArchivedFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()

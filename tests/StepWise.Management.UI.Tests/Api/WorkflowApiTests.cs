@@ -3,22 +3,7 @@ using static Walkthrough.Core.FieldValues;
 
 namespace StepWise.Management.UI.Tests.Api;
 
-public abstract class WorkflowTestBase : ManagementTestBase
-{
-    protected async Task SetupCatalogWithStepAsync()
-    {
-        var target = await BuildAsync(new CreateTargetCommand());
-        await ExecuteAsync(new PostTargetCommandsRequest());
-        await ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
-
-        await BuildAsync(new CreateCatalogCommand());
-        await ExecuteAsync(new PostCatalogCommandsRequest());
-        await BuildAsync(new UpsertStepCommand());
-        await ExecuteAsync(new PostCatalogStepCommandsRequest());
-    }
-}
-
-public class Workflow_19_CreateWorkflow_EmptyName_Returns422 : ManagementTestBase
+public class Workflow_CreateWorkflow_EmptyName_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -30,7 +15,7 @@ public class Workflow_19_CreateWorkflow_EmptyName_Returns422 : ManagementTestBas
     }
 }
 
-public class Workflow_20_CreateWorkflow_DuplicateCreate_Returns422 : ManagementTestBase
+public class Workflow_CreateWorkflow_DuplicateCreate_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -45,7 +30,7 @@ public class Workflow_20_CreateWorkflow_DuplicateCreate_Returns422 : ManagementT
     }
 }
 
-public class Workflow_21_RenameWorkflow_EmptyName_Returns422 : ManagementTestBase
+public class Workflow_RenameWorkflow_EmptyName_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -58,7 +43,7 @@ public class Workflow_21_RenameWorkflow_EmptyName_Returns422 : ManagementTestBas
     }
 }
 
-public class Workflow_22_RenameWorkflow_DoesNotExist_Returns422 : ManagementTestBase
+public class Workflow_RenameWorkflow_DoesNotExist_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -73,12 +58,12 @@ public class Workflow_22_RenameWorkflow_DoesNotExist_Returns422 : ManagementTest
     }
 }
 
-public class Workflow_23_AppendStep_EmptyId_Returns422 : WorkflowTestBase
+public class Workflow_AppendStep_EmptyId_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new AppendStepCommand() with { Id = Static("") });
@@ -88,12 +73,12 @@ public class Workflow_23_AppendStep_EmptyId_Returns422 : WorkflowTestBase
     }
 }
 
-public class Workflow_24_InsertStepBefore_NotFound_Returns422 : WorkflowTestBase
+public class Workflow_InsertStepBefore_NotFound_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new InsertStepBeforeCommand() with { BeforeId = Static("nonexistent-id") });
@@ -103,7 +88,7 @@ public class Workflow_24_InsertStepBefore_NotFound_Returns422 : WorkflowTestBase
     }
 }
 
-public class Workflow_25_RemoveStep_NotFound_Returns422 : ManagementTestBase
+public class Workflow_RemoveStep_NotFound_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -116,7 +101,7 @@ public class Workflow_25_RemoveStep_NotFound_Returns422 : ManagementTestBase
     }
 }
 
-public class Workflow_26_SetStepDefaults_NotFound_Returns422 : ManagementTestBase
+public class Workflow_SetStepDefaults_NotFound_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -129,7 +114,7 @@ public class Workflow_26_SetStepDefaults_NotFound_Returns422 : ManagementTestBas
     }
 }
 
-public class Workflow_27_ArchiveWorkflow_AlreadyArchived_Returns422 : ManagementTestBase
+public class Workflow_ArchiveWorkflow_AlreadyArchived_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -145,7 +130,7 @@ public class Workflow_27_ArchiveWorkflow_AlreadyArchived_Returns422 : Management
     }
 }
 
-public class Workflow_28_UnarchiveWorkflow_NotArchived_Returns422 : ManagementTestBase
+public class Workflow_UnarchiveWorkflow_NotArchived_Returns422 : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -160,7 +145,7 @@ public class Workflow_28_UnarchiveWorkflow_NotArchived_Returns422 : ManagementTe
     }
 }
 
-public class Workflow_06_Create_NameAssertedAndStepsEmpty : WorkflowTestBase
+public class Workflow_Create_NameAssertedAndStepsEmpty : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -174,7 +159,7 @@ public class Workflow_06_Create_NameAssertedAndStepsEmpty : WorkflowTestBase
     }
 }
 
-public class Workflow_07_Rename_NameUpdated : WorkflowTestBase
+public class Workflow_Rename_NameUpdated : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -188,12 +173,12 @@ public class Workflow_07_Rename_NameUpdated : WorkflowTestBase
     }
 }
 
-public class Workflow_08_AppendStep_OrderAndDefaultsAsserted : WorkflowTestBase
+public class Workflow_AppendStep_OrderAndDefaultsAsserted : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         var stepA = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" }) });
@@ -208,12 +193,12 @@ public class Workflow_08_AppendStep_OrderAndDefaultsAsserted : WorkflowTestBase
     }
 }
 
-public class Workflow_09_InsertStepBefore_OrderAsserted : WorkflowTestBase
+public class Workflow_InsertStepBefore_OrderAsserted : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         var stepA    = await BuildAsync(new AppendStepCommand() with { Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" }) });
@@ -235,12 +220,12 @@ public class Workflow_09_InsertStepBefore_OrderAsserted : WorkflowTestBase
     }
 }
 
-public class Workflow_10_RemoveStep_OneStepRemains : WorkflowTestBase
+public class Workflow_RemoveStep_OneStepRemains : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         var stepA = await BuildAsync(new AppendStepCommand());
@@ -254,12 +239,12 @@ public class Workflow_10_RemoveStep_OneStepRemains : WorkflowTestBase
     }
 }
 
-public class Workflow_11_SetStepDefaults_DefaultsAsserted : WorkflowTestBase
+public class Workflow_SetStepDefaults_DefaultsAsserted : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         var step = await BuildAsync(new AppendStepCommand());
@@ -276,12 +261,12 @@ public class Workflow_11_SetStepDefaults_DefaultsAsserted : WorkflowTestBase
     }
 }
 
-public class Workflow_12_BadAssertion_StoredSuccessfully : WorkflowTestBase
+public class Workflow_BadAssertion_StoredSuccessfully : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new AppendStepCommand());
@@ -296,12 +281,12 @@ public class Workflow_12_BadAssertion_StoredSuccessfully : WorkflowTestBase
     }
 }
 
-public class Workflow_13_AddAssertion_StoredSuccessfully : WorkflowTestBase
+public class Workflow_AddAssertion_StoredSuccessfully : ManagementTestBase
 {
     [Fact]
     public async Task Test()
     {
-        await SetupCatalogWithStepAsync();
+        await Setups.SetupCatalogWithStepAsync(Runner);
 
         var step = await BuildAsync(new CreateWorkflowCommand());
         await BuildAsync(new AppendStepCommand());
@@ -316,7 +301,7 @@ public class Workflow_13_AddAssertion_StoredSuccessfully : WorkflowTestBase
     }
 }
 
-public class Workflow_14_ArchiveWorkflow_IsArchivedTrue : WorkflowTestBase
+public class Workflow_ArchiveWorkflow_IsArchivedTrue : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -330,7 +315,7 @@ public class Workflow_14_ArchiveWorkflow_IsArchivedTrue : WorkflowTestBase
     }
 }
 
-public class Workflow_15_UnarchiveWorkflow_IsArchivedFalse : WorkflowTestBase
+public class Workflow_UnarchiveWorkflow_IsArchivedFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -345,7 +330,7 @@ public class Workflow_15_UnarchiveWorkflow_IsArchivedFalse : WorkflowTestBase
     }
 }
 
-public class Workflow_16_UpdateDescription_DescriptionAsserted : WorkflowTestBase
+public class Workflow_UpdateDescription_DescriptionAsserted : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -359,7 +344,7 @@ public class Workflow_16_UpdateDescription_DescriptionAsserted : WorkflowTestBas
     }
 }
 
-public class Workflow_17_Archive_ExcludedFromList : WorkflowTestBase
+public class Workflow_Archive_ExcludedFromList : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -373,7 +358,7 @@ public class Workflow_17_Archive_ExcludedFromList : WorkflowTestBase
     }
 }
 
-public class Workflow_18_Archive_IncludedInListWhenShowArchived : WorkflowTestBase
+public class Workflow_Archive_IncludedInListWhenShowArchived : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -388,7 +373,7 @@ public class Workflow_18_Archive_IncludedInListWhenShowArchived : WorkflowTestBa
     }
 }
 
-public class Workflow_36_Paging_PageSizeIsRespected : ManagementTestBase
+public class Workflow_Paging_PageSizeIsRespected : ManagementTestBase
 {
     [Fact]
     public async Task Test()
