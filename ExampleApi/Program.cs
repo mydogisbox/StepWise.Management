@@ -50,7 +50,9 @@ app.MapPost("/auth/login", (LoginRequest req) =>
 
 app.MapGet("/products", (string? category, bool? inStock) =>
 {
-    var q = store.Products.AsEnumerable();
+    List<Product> snapshot;
+    lock (store.Products) snapshot = store.Products.ToList();
+    var q = snapshot.AsEnumerable();
     if (category is not null)
         q = q.Where(p => string.Equals(p.Category, category, StringComparison.OrdinalIgnoreCase));
     if (inStock is true)
@@ -60,7 +62,8 @@ app.MapGet("/products", (string? category, bool? inStock) =>
 
 app.MapGet("/products/{id}", (string id) =>
 {
-    var p = store.Products.FirstOrDefault(p => p.Id == id);
+    Product? p;
+    lock (store.Products) p = store.Products.FirstOrDefault(p => p.Id == id);
     return p is null
         ? Err404($"Product '{id}' not found.")
         : Results.Json(new { p.Id, p.Name, p.Category, p.Price, p.Stock, p.Description }, json);
@@ -73,9 +76,11 @@ app.MapGet("/cart", (HttpContext ctx) =>
     var uid = Auth(ctx);
     if (uid is null) return Err401();
     var items = store.GetCart(uid);
+    List<Product> products;
+    lock (store.Products) products = store.Products.ToList();
     var lines = items.Select(i =>
     {
-        var p = store.Products.First(p => p.Id == i.ProductId);
+        var p = products.First(p => p.Id == i.ProductId);
         return new { i.ProductId, p.Name, p.Price, i.Quantity, lineTotal = Math.Round(p.Price * i.Quantity, 2) };
     }).ToList();
     return Results.Json(new { items = lines, total = lines.Sum(l => l.lineTotal) }, json);
@@ -85,7 +90,8 @@ app.MapPost("/cart/items", (HttpContext ctx, AddCartItemRequest req) =>
 {
     var uid = Auth(ctx);
     if (uid is null) return Err401();
-    var p = store.Products.FirstOrDefault(x => x.Id == req.ProductId);
+    Product? p;
+    lock (store.Products) p = store.Products.FirstOrDefault(x => x.Id == req.ProductId);
     if (p is null) return Err404($"Product '{req.ProductId}' not found.");
     if (p.Stock == 0) return Err422($"'{p.Name}' is out of stock.");
     if (req.Quantity <= 0) return Err422("Quantity must be at least 1.");

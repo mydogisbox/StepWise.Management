@@ -111,7 +111,7 @@ public class Execution_InStockFilter : ManagementTestBase
     }
 }
 
-public class Execution_RunFailed_StatusIsFailedWithError : ManagementTestBase
+public class Execution_RunFailed_PassedIsFalse : ManagementTestBase
 {
     [Fact]
     public async Task Test()
@@ -119,10 +119,9 @@ public class Execution_RunFailed_StatusIsFailedWithError : ManagementTestBase
         await Setups.RunFailedWorkflowAsync(Runner);
 
         await ExecuteAsync(new RunWorkflowRequest());
-        var run = await PollAsync(new GetRunRequest(), r => r.Status != "pending");
+        var run = await PollAsync(new GetRunRequest(), r => r.Status == "completed");
 
-        Assert.Equal("failed", run.Status);
-        Assert.False(string.IsNullOrEmpty(run.Error));
+        Assert.False(run.Passed);
     }
 }
 

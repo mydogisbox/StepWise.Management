@@ -20,6 +20,7 @@ public class WorkflowExecutionService : BackgroundService
     private readonly ILogger<WorkflowExecutionService> _logger;
     private readonly int _maxAttempts;
     private readonly int _pollingIntervalMs;
+    private readonly int _concurrency;
 
     public WorkflowExecutionService(
         IConfiguration configuration,
@@ -33,10 +34,14 @@ public class WorkflowExecutionService : BackgroundService
         _runHandler = runHandler;
         _logger = logger;
         _maxAttempts = configuration.GetValue("WorkflowExecution:MaxAttempts", 3);
-        _pollingIntervalMs = configuration.GetValue("WorkflowExecution:PollingIntervalMs", 1000);
+        _pollingIntervalMs = configuration.GetValue("WorkflowExecution:PollingIntervalMs", 200);
+        _concurrency = configuration.GetValue("WorkflowExecution:Concurrency", 4);
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        Task.WhenAll(Enumerable.Range(0, _concurrency).Select(_ => RunWorkerAsync(stoppingToken)));
+
+    private async Task RunWorkerAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -66,41 +71,31 @@ public class WorkflowExecutionService : BackgroundService
 
     private async Task ProcessNextAsync(CancellationToken cancellationToken)
     {
-        long outboxId;
-        string runId;
-        string workflowId;
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync(cancellationToken);
+        await using var tx = await conn.BeginTransactionAsync(cancellationToken);
 
-        // Claim one outbox row
-        await using (var conn = new NpgsqlConnection(_connectionString))
-        {
-            await conn.OpenAsync(cancellationToken);
-            await using var tx = await conn.BeginTransactionAsync(cancellationToken);
+        // Keep FOR UPDATE held for the entire method so concurrent workers can't claim the same row.
+        var row = await conn.QueryFirstOrDefaultAsync<(long Id, string Payload, int NewAttempts)>(
+            @"SELECT id, payload::text, attempts + 1 AS new_attempts FROM outbox
+              WHERE processed_at IS NULL AND attempts < @maxAttempts
+              ORDER BY id
+              LIMIT 1
+              FOR UPDATE SKIP LOCKED",
+            new { maxAttempts = _maxAttempts }, tx);
 
-            var row = await conn.QueryFirstOrDefaultAsync<(long Id, string Payload)>(
-                @"SELECT id, payload::text FROM outbox
-                  WHERE processed_at IS NULL AND attempts < @maxAttempts
-                  ORDER BY id
-                  LIMIT 1
-                  FOR UPDATE SKIP LOCKED",
-                new { maxAttempts = _maxAttempts }, tx);
+        if (row == default)
+            return;
 
-            if (row == default)
-            {
-                await tx.RollbackAsync(cancellationToken);
-                return;
-            }
+        await conn.ExecuteAsync(
+            "UPDATE outbox SET attempts = @attempts WHERE id = @id",
+            new { id = row.Id, attempts = row.NewAttempts }, tx);
 
-            await conn.ExecuteAsync(
-                "UPDATE outbox SET attempts = attempts + 1 WHERE id = @id",
-                new { id = row.Id }, tx);
-
-            await tx.CommitAsync(cancellationToken);
-
-            outboxId = row.Id;
-            var payload = JsonSerializer.Deserialize<OutboxPayload>(row.Payload, JsonConfig.Options)!;
-            runId = payload.RunId;
-            workflowId = payload.WorkflowId;
-        }
+        var outboxId   = row.Id;
+        var newAttempts = row.NewAttempts;
+        var payload    = JsonSerializer.Deserialize<OutboxPayload>(row.Payload, JsonConfig.Options)!;
+        var runId      = payload.RunId;
+        var workflowId = payload.WorkflowId;
 
         _logger.LogInformation(
             "Processing outbox row {OutboxId}: run {RunId} for workflow {WorkflowId}",
@@ -124,27 +119,24 @@ public class WorkflowExecutionService : BackgroundService
                 ReflectionDeserializer.ForCommands<WorkflowRunCommands>(),
                 ReflectionDeserializer.ForEvents<WorkflowRunEvent>());
 
-            await using var conn = new NpgsqlConnection(_connectionString);
-            await conn.OpenAsync(cancellationToken);
             await conn.ExecuteAsync(
                 "UPDATE outbox SET processed_at = now() WHERE id = @id",
-                new { id = outboxId });
+                new { id = outboxId }, tx);
+
+            await tx.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Run {RunId} completed. Passed={Passed}", runId, result.Passed);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogWarning(ex, "Run {RunId} failed.", runId);
+            _logger.LogWarning(ex, "Run {RunId} failed (attempt {Attempts}/{MaxAttempts}).", runId, newAttempts, _maxAttempts);
 
-            await using var conn = new NpgsqlConnection(_connectionString);
-            await conn.OpenAsync(cancellationToken);
-
-            var attempts = await conn.ExecuteScalarAsync<int>(
-                "SELECT attempts FROM outbox WHERE id = @id",
-                new { id = outboxId });
-
-            if (attempts >= _maxAttempts)
+            if (newAttempts >= _maxAttempts)
             {
                 _logger.LogError(
                     "Run {RunId} exhausted all {MaxAttempts} attempts. Recording failure.",
@@ -163,14 +155,16 @@ public class WorkflowExecutionService : BackgroundService
 
                 await conn.ExecuteAsync(
                     "UPDATE outbox SET processed_at = now(), last_error = @error WHERE id = @id",
-                    new { id = outboxId, error = ex.Message });
+                    new { id = outboxId, error = ex.Message }, tx);
             }
             else
             {
                 await conn.ExecuteAsync(
                     "UPDATE outbox SET last_error = @error WHERE id = @id",
-                    new { id = outboxId, error = ex.Message });
+                    new { id = outboxId, error = ex.Message }, tx);
             }
+
+            await tx.CommitAsync(cancellationToken);
         }
     }
 

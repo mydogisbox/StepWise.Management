@@ -24,7 +24,8 @@ internal static class UiHelper
     {
         await page.GotoAsync("http://localhost:5020/index.html");
         await page.GetByRole(AriaRole.Button, new() { Name = sectionButton }).ClickAsync();
+        var filterDone = page.WaitForResponseAsync(r => r.Url.Contains("name=") && r.Request.Method == "GET");
         await page.FillAsync($"#{filterId}", filterValue);
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await filterDone;
     }
 }

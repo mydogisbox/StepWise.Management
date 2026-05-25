@@ -26,17 +26,13 @@ public class Workflow_Archive_IncludedWhenShowArchived_ViaUI : PlaywrightTestBas
     {
         var workflowName = await Setups.ArchivedWorkflowAsync(Runner);
 
-        await Page.GotoAsync("http://localhost:5020/index.html");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Workflows" }).ClickAsync();
+        await UiHelper.NavigateToSectionAsync(Page, "Workflows", "Workflows");
         await Page.CheckAsync("#workflows-show-archived");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var filterDone = Page.WaitForResponseAsync(r => r.Url.Contains("name=") && r.Request.Method == "GET");
+        await Page.FillAsync("#workflows-name-filter", workflowName);
+        await filterDone;
 
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-        {
-            var content = await Page.InnerTextAsync("#workflow-list");
-            return content.Contains(workflowName);
-        });
-        Assert.True(found, $"Workflow '{workflowName}' not found on any page");
+        await Assertions.Expect(Page.Locator("#workflow-list").GetByText(workflowName)).ToBeVisibleAsync();
         var archivedVisible = await Page.QuerySelectorAsync("#workflow-list span.text-yellow-700");
         Assert.NotNull(archivedVisible);
     }
@@ -128,11 +124,7 @@ public class Workflow_AddStep_AppearsInStepsList_ViaUI : PlaywrightTestBase
         var workflow = await BuildAsync(new CreateWorkflowCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflow.Name);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflow.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -159,11 +151,7 @@ public class Workflow_RemoveStep_DisappearsFromList_ViaUI : PlaywrightTestBase
         await BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflow.Name);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflow.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -186,11 +174,7 @@ public class Workflow_AddEqualAssertion_AppearsInList_ViaUI : PlaywrightTestBase
         var workflow = await BuildAsync(new CreateWorkflowCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflow.Name);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflow.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -222,11 +206,7 @@ public class Workflow_AddNotEmptyAssertion_AppearsInList_ViaUI : PlaywrightTestB
         var workflow = await BuildAsync(new CreateWorkflowCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflow.Name);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflow.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -257,7 +237,7 @@ public class Runs_List_ShowsCompletedRun_ViaUI : PlaywrightWithTargetTestBase
         var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
         Assert.Single(listed.Items);
         await ExecuteAsync(new RunWorkflowRequest());
-        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 500, timeoutMs: 15000);
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
 
         var runs = await ExecuteAsync(new ListRunsRequest() with { WorkflowName = Static(workflowName) });
         var run = Assert.Single(runs.Items);
@@ -324,14 +304,7 @@ public class Catalog_OpenDetail_ShowsNamePrefilled_ViaUI : PlaywrightTestBase
         var create = await BuildAsync(new CreateCatalogCommand());
         await ExecuteAsync(new PostCatalogCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-        {
-            var content = await Page.InnerTextAsync("#catalog-list");
-            return content.Contains(create.Name);
-        });
-        Assert.True(found, $"Catalog '{create.Name}' not found on any page");
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", create.Name);
 
         await Page.Locator("#catalog-list").GetByText(create.Name).ClickAsync();
 
@@ -352,11 +325,7 @@ public class Catalog_Edit_SaveUpdatesTitle_ViaUI : PlaywrightTestBase
         await ExecuteAsync(new PostCatalogCommandsRequest());
         var updatedName = $"updated-{Guid.NewGuid():N}";
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(create.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", create.Name);
 
         await Page.Locator("#catalog-list").GetByText(create.Name).ClickAsync();
         await Assertions.Expect(Page.Locator("#catalog-detail")).ToBeVisibleAsync();
@@ -405,11 +374,7 @@ public class Catalog_AddStep_AppearsInStepsList_ViaUI : PlaywrightTestBase
 
         var stepName = $"step-{Guid.NewGuid():N}";
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(catalog.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", catalog.Name);
 
         await Page.Locator("#catalog-list").GetByText(catalog.Name).ClickAsync();
         await Assertions.Expect(Page.Locator("#catalog-detail")).ToBeVisibleAsync();
@@ -447,11 +412,7 @@ public class Catalog_EditStep_FormPreFills_ViaUI : PlaywrightTestBase
         await ExecuteAsync(new PostCatalogCommandsRequest());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(catalog.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", catalog.Name);
 
         await Page.Locator("#catalog-list").GetByText(catalog.Name).ClickAsync();
         await Assertions.Expect(Page.Locator("#catalog-detail")).ToBeVisibleAsync();
@@ -488,11 +449,7 @@ public class Catalog_ArchiveStep_BadgeAppearsAndDisappears_ViaUI : PlaywrightTes
         await ExecuteAsync(new PostCatalogCommandsRequest());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(catalog.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", catalog.Name);
 
         await Page.Locator("#catalog-list").GetByText(catalog.Name).ClickAsync();
         await Assertions.Expect(Page.Locator("#catalog-detail")).ToBeVisibleAsync();
@@ -516,7 +473,7 @@ public class Runs_ViewDetail_ShowsPassBadgeAndSteps_ViaUI : PlaywrightTestBase
     {
         var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
         await ExecuteAsync(new RunWorkflowRequest());
-        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 500, timeoutMs: 15000);
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
 
         await UiHelper.NavigateToListAsync(Page, "Runs", "#runs-list");
 
@@ -540,13 +497,9 @@ public class Workflow_RunStats_PassedRun_ShowsCountAndRate_ViaUI : PlaywrightTes
     {
         var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
         await ExecuteAsync(new RunWorkflowRequest());
-        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 500, timeoutMs: 15000);
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflowName));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflowName);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflowName });
         await Assertions.Expect(row.Locator("td:nth-child(3)")).ToHaveTextAsync("1");
@@ -563,13 +516,9 @@ public class Workflow_RunStats_FailedRun_ShowsZeroPassRate_ViaUI : PlaywrightTes
     {
         var workflowName = await Setups.RunFailedWorkflowAsync(Runner);
         await ExecuteAsync(new RunWorkflowRequest());
-        await PollAsync(new GetRunRequest(), r => r.Status != "pending", intervalMs: 500, timeoutMs: 15000);
+        await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflowName));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflowName);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflowName });
         await Assertions.Expect(row.Locator("td:nth-child(3)")).ToHaveTextAsync("1");

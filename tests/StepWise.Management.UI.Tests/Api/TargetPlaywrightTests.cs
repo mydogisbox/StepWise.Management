@@ -91,14 +91,7 @@ public class Target_Edit_UpdatesInList_ViaUI : PlaywrightTestBase
         await ExecuteAsync(new PostTargetCommandsRequest());
         var updatedName = $"updated-{Guid.NewGuid():N}";
 
-        await UiHelper.NavigateToListAsync(Page, "Targets", "#target-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-        {
-            var content = await Page.InnerTextAsync("#target-list");
-            return content.Contains(target.Name);
-        });
-        Assert.True(found, $"Target '{target.Name}' not found on any page");
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", target.Name);
 
         var row = Page.Locator("#target-list tr").Filter(new LocatorFilterOptions { HasText = target.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -107,6 +100,11 @@ public class Target_Edit_UpdatesInList_ViaUI : PlaywrightTestBase
         await Page.FillAsync("#target-modal-name", updatedName);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
+        await Assertions.Expect(Page.Locator("h3:text('Edit Target')")).Not.ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15000 });
+        var filterDone = Page.WaitForResponseAsync(r => r.Url.Contains("name=") && r.Request.Method == "GET");
+        await Page.FillAsync("#targets-name-filter", updatedName);
+        await filterDone;
         await Assertions.Expect(Page.Locator("#target-list").GetByText(updatedName)).ToBeVisibleAsync();
     }
 }
@@ -120,11 +118,7 @@ public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : PlaywrightTes
         var target = await BuildAsync(new CreateTargetCommand());
         await ExecuteAsync(new PostTargetCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Targets", "#target-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-            (await Page.InnerTextAsync("#target-list")).Contains(target.Name));
-        Assert.True(found, $"Target '{target.Name}' not found");
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", target.Name);
 
         var row = Page.Locator("#target-list tr").Filter(new LocatorFilterOptions { HasText = target.Name });
         await row.GetByText("Archive").ClickAsync();
@@ -133,9 +127,7 @@ public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : PlaywrightTes
             $"!document.querySelector('#target-list')?.innerText?.includes('{target.Name}')");
 
         await Page.CheckAsync("#targets-show-archived");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-            (await Page.InnerTextAsync("#target-list")).Contains(target.Name));
+        await Assertions.Expect(Page.Locator("#target-list").GetByText(target.Name)).ToBeVisibleAsync();
 
         var archivedRow = Page.Locator("#target-list tr").Filter(new LocatorFilterOptions { HasText = target.Name });
         await Assertions.Expect(archivedRow.Locator("span.text-yellow-700")).ToBeVisibleAsync();

@@ -206,7 +206,7 @@ public static class Setups
         var listed = await runner.ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
         Assert.Single(listed.Items);
         await runner.ExecuteAsync(new RunWorkflowRequest());
-        return await runner.PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 500, timeoutMs: 15000);
+        return await runner.PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
     }
 
     public static async Task<string> ArchivedWorkflowAsync(WorkflowRunner runner)
