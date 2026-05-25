@@ -21,6 +21,7 @@ appsettings.Development.json
 test-api.log
 test-example.log
 .api-started
+TestResults/
 
 # Walkthrough docs
 **/.claude/walkthrough/

@@ -28,23 +28,20 @@ public abstract class ManagementTestBase
     protected virtual WorkflowRunner BuildRunner() =>
         new WorkflowRunner(new WorkflowContext(), ApiTarget);
 
-    protected Task<TResponse> ExecuteAsync<TResponse, TSelf>(WorkflowRequest<TResponse, TSelf> request)
-        where TSelf : WorkflowRequest<TResponse, TSelf>, IWorkflowRequest
+    protected Task<TResponse> ExecuteAsync<TResponse>(WorkflowRequest<TResponse> request)
         => Runner.ExecuteAsync(request);
 
     protected Task<TResponse> BuildAsync<TResponse>(BuildableRequest<TResponse> item)
         => Runner.BuildAsync(item);
 
-    protected Task<object> ExecuteRawAsync<TResponse, TSelf>(WorkflowRequest<TResponse, TSelf> request)
-        where TSelf : WorkflowRequest<TResponse, TSelf>, IWorkflowRequest
+    protected Task<object> ExecuteRawAsync<TResponse>(WorkflowRequest<TResponse> request)
         => Runner.ExecuteRawAsync(request);
 
-    protected Task<TResponse> PollAsync<TResponse, TSelf>(
-        WorkflowRequest<TResponse, TSelf> request,
+    protected Task<TResponse> PollAsync<TResponse>(
+        WorkflowRequest<TResponse> request,
         Func<TResponse, bool> until,
         int intervalMs = 200,
         int timeoutMs  = 10000)
-        where TSelf : WorkflowRequest<TResponse, TSelf>, IWorkflowRequest
         => Runner.PollAsync(request, until, intervalMs, timeoutMs);
 
     protected static RunStepResult GetStep(RunResult result, string stepName)

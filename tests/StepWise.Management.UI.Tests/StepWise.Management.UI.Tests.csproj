@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Walkthrough.Core" Version="0.5.2" />
-    <PackageReference Include="Walkthrough.Http" Version="0.5.2" />
+    <PackageReference Include="Walkthrough.Core" Version="0.6.0" />
+    <PackageReference Include="Walkthrough.Http" Version="0.6.0" />
   </ItemGroup>
 
   <ItemGroup>

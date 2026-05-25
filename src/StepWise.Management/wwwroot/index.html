@@ -33,7 +33,10 @@
       <div class="flex-1 p-8 overflow-auto min-w-0">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Catalogs</h2>
-          <button onclick="openModal('modal-new-catalog')" class="btn-primary">+ New Catalog</button>
+          <div class="flex items-center gap-3">
+            <input id="catalogs-name-filter" type="text" placeholder="Search…" class="input text-sm" oninput="loadCatalogs(1)" />
+            <button onclick="openModal('modal-new-catalog')" class="btn-primary">+ New Catalog</button>
+          </div>
         </div>
         <div id="catalog-list"></div>
         <div id="pager-catalogs"></div>
@@ -110,6 +113,7 @@
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold">Targets</h2>
         <div class="flex items-center gap-3">
+          <input id="targets-name-filter" type="text" placeholder="Search…" class="input text-sm" oninput="loadTargets(1)" />
           <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input type="checkbox" id="targets-show-archived" onchange="loadTargets(1)" class="rounded" />
             Show archived
@@ -127,6 +131,7 @@
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-bold">Workflows</h2>
           <div class="flex items-center gap-3">
+            <input id="workflows-name-filter" type="text" placeholder="Search…" class="input text-sm" oninput="loadWorkflows(1)" />
             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
               <input type="checkbox" id="workflows-show-archived" onchange="loadWorkflows(1)" class="rounded" />
               Show archived
@@ -451,8 +456,10 @@ function showView(name) {
 // ── Catalogs ─────────────────────────────────────────────────────────────────
 async function loadCatalogs(page = pages.catalogs) {
   pages.catalogs = page;
+  const nameFilter = document.getElementById('catalogs-name-filter')?.value.trim();
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(nameFilter ? { name: nameFilter } : {}) });
   try {
-    const data = await api('GET', `/catalogs?page=${page}&pageSize=${PAGE_SIZE}`);
+    const data = await api('GET', `/catalogs?${q}`);
     const rows = data.items.map(c => `<tr class="hover:bg-gray-50 cursor-pointer" onclick="openCatalogDetail('${esc(c.id)}')">
       ${td(`<span class="font-medium text-gray-900">${esc(c.name)}</span>`)}
       ${td(`<span class="text-gray-500">${esc(c.description || '—')}</span>`)}
@@ -643,7 +650,8 @@ async function unarchiveCatalogStep(id) {
 async function loadTargets(page = pages.targets) {
   pages.targets = page;
   const showArchived = document.getElementById('targets-show-archived')?.checked;
-  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}) });
+  const nameFilter = document.getElementById('targets-name-filter')?.value.trim();
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}), ...(nameFilter ? { name: nameFilter } : {}) });
   try {
     const data = await api('GET', `/targets?${q}`);
     const rows = data.items.map(t => `<tr class="hover:bg-gray-50 ${t.isArchived ? 'opacity-60' : ''}">
@@ -722,7 +730,8 @@ function openNewTargetModal() {
 async function loadWorkflows(page = pages.workflows) {
   pages.workflows = page;
   const showArchived = document.getElementById('workflows-show-archived')?.checked;
-  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}) });
+  const nameFilter = document.getElementById('workflows-name-filter')?.value.trim();
+  const q = new URLSearchParams({ page, pageSize: PAGE_SIZE, ...(showArchived ? { showArchived: 'true' } : {}), ...(nameFilter ? { name: nameFilter } : {}) });
   try {
     const data = await api('GET', `/workflows?${q}`);
     const rows = data.items.map(w => {

@@ -7,7 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Walkthrough.Json" Version="0.5.2" />
+    <PackageReference Include="Walkthrough.Json" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="WorkflowTests\**\*.json">

@@ -36,12 +36,11 @@ public record UnarchiveCatalogCommand() : CatalogCommand<UnarchiveCatalogOutput>
 
 public record CatalogCommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostCatalogCommandsRequest() : WorkflowRequest<CatalogCommandSuccess[], PostCatalogCommandsRequest>, IWorkflowRequest
+public record PostCatalogCommandsRequest() : WorkflowRequest<CatalogCommandSuccess[]>
 {
-    public static string StepName => "postCatalogCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.GetOrDefault<CreateCatalogOutput>("CreateCatalogCommand")?.Id ??
-        ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
+        ctx.GetOrDefault<CreateCatalogOutput>(nameof(CreateCatalogCommand))?.Id ??
+        ctx.Get<CatalogCommandSuccess[]>(nameof(PostCatalogCommandsRequest))[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<CatalogCommand>());
 }
 
@@ -76,11 +75,10 @@ public class PostCatalogCommandsStep : HttpStep<PostCatalogCommandsRequest, Cata
 
 public record CatalogResponse(string Id, string Name, string? Description, bool IsArchived, string? CreatedAt);
 
-public record GetCatalogRequest() : WorkflowRequest<CatalogResponse, GetCatalogRequest>, IWorkflowRequest
+public record GetCatalogRequest() : WorkflowRequest<CatalogResponse>
 {
-    public static string StepName => "getCatalog";
     public IFieldValue<string> Id { get; init; } =
-        From(ctx => ctx.Get<CatalogCommandSuccess[]>("postCatalogCommands")[0].AggregateId);
+        From(ctx => ctx.Get<CatalogCommandSuccess[]>(nameof(PostCatalogCommandsRequest))[0].AggregateId);
 }
 
 public class GetCatalogStep : HttpStep<GetCatalogRequest, CatalogResponse, GetCatalogStep>, IHttpStep
@@ -91,9 +89,8 @@ public class GetCatalogStep : HttpStep<GetCatalogRequest, CatalogResponse, GetCa
 
 // ── GET /catalogs ─────────────────────────────────────────────────────────────
 
-public record ListCatalogsRequest() : WorkflowRequest<PagedResponse<CatalogResponse>, ListCatalogsRequest>, IWorkflowRequest
+public record ListCatalogsRequest() : WorkflowRequest<PagedResponse<CatalogResponse>>
 {
-    public static string StepName => "listCatalogs";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
     public IFieldValue<int>    Page         { get; init; } = Static(1);
     public IFieldValue<int>    PageSize     { get; init; } = Static(10);

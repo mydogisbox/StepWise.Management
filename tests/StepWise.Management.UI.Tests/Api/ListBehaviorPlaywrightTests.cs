@@ -6,21 +6,14 @@ namespace StepWise.Management.UI.Tests.Api;
 
 public class Workflow_Archive_ExcludedFromList_ViaUI : PlaywrightTestBase
 {
-
-
     [Fact]
     public async Task Test()
     {
         var workflowName = await Setups.ArchivedWorkflowAsync(Runner);
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflowName);
 
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-        {
-            var content = await Page.InnerTextAsync("#workflow-list");
-            return content.Contains(workflowName);
-        });
-        Assert.False(found, $"Archived workflow '{workflowName}' should not appear in the default list");
+        Assert.DoesNotContain(workflowName, await Page.InnerTextAsync("#workflow-list"));
     }
 }
 
@@ -102,19 +95,13 @@ public class Workflow_CreateViaForm_DetailOpens_ViaUI : PlaywrightTestBase
 
 public class Workflow_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
 {
-
-
     [Fact]
     public async Task Test()
     {
         var workflow = await BuildAsync(new CreateWorkflowCommand());
         await ExecuteAsync(new PostWorkflowCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Workflows", "#workflow-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Workflows", "workflows-name-filter", workflow.Name);
 
         var row = Page.Locator("#workflow-list tr").Filter(new LocatorFilterOptions { HasText = workflow.Name });
         await row.GetByText("Edit").ClickAsync();
@@ -124,11 +111,8 @@ public class Workflow_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
         await Assertions.Expect(Page.Locator("#workflow-archive-btn")).ToHaveTextAsync("Unarchive");
         await Page.WaitForFunctionAsync(
             $"!document.querySelector('#workflow-list')?.innerText?.includes('{workflow.Name}')");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        var stillThere = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-workflows", async () =>
-            (await Page.InnerTextAsync("#workflow-list")).Contains(workflow.Name));
-        Assert.False(stillThere, $"Archived workflow '{workflow.Name}' should not appear in the default list");
+        Assert.DoesNotContain(workflow.Name, await Page.InnerTextAsync("#workflow-list"));
     }
 }
 
@@ -386,19 +370,13 @@ public class Catalog_Edit_SaveUpdatesTitle_ViaUI : PlaywrightTestBase
 
 public class Catalog_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
 {
-
-
     [Fact]
     public async Task Test()
     {
         var create = await BuildAsync(new CreateCatalogCommand());
         await ExecuteAsync(new PostCatalogCommandsRequest());
 
-        await UiHelper.NavigateToListAsync(Page, "Catalogs", "#catalog-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(create.Name));
-        Assert.True(found);
+        await UiHelper.NavigateAndFilterAsync(Page, "Catalogs", "catalogs-name-filter", create.Name);
 
         await Page.Locator("#catalog-list").GetByText(create.Name).ClickAsync();
         await Assertions.Expect(Page.Locator("#catalog-detail")).ToBeVisibleAsync();
@@ -407,11 +385,8 @@ public class Catalog_Archive_DisappearsFromList_ViaUI : PlaywrightTestBase
         await Assertions.Expect(Page.Locator("#catalog-archive-btn")).ToHaveTextAsync("Unarchive");
         await Page.WaitForFunctionAsync(
             $"!document.querySelector('#catalog-list')?.innerText?.includes('{create.Name}')");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        var stillThere = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-catalogs", async () =>
-            (await Page.InnerTextAsync("#catalog-list")).Contains(create.Name));
-        Assert.False(stillThere, $"Archived catalog '{create.Name}' should not appear in the default list");
+        Assert.DoesNotContain(create.Name, await Page.InnerTextAsync("#catalog-list"));
     }
 }
 

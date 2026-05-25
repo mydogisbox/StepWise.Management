@@ -5,20 +5,14 @@ namespace StepWise.Management.UI.Tests.Api;
 
 public class Target_Archive_ExcludedFromList_ViaUI : PlaywrightTestBase
 {
-
     [Fact]
     public async Task Test()
     {
         var targetName = await Setups.ArchivedTargetAsync(Runner);
 
-        await UiHelper.NavigateToListAsync(Page, "Targets", "#target-list");
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", targetName);
 
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-        {
-            var content = await Page.InnerTextAsync("#target-list");
-            return content.Contains(targetName);
-        });
-        Assert.False(found, $"Archived target '{targetName}' should not appear in the default list");
+        Assert.DoesNotContain(targetName, await Page.InnerTextAsync("#target-list"));
     }
 }
 
@@ -153,23 +147,15 @@ public class Target_Archive_BadgeAppearsWhenShowArchivedOn_ViaUI : PlaywrightTes
 
 public class Target_ShowArchived_TogglesArchivedRows_ViaUI : PlaywrightTestBase
 {
-
     [Fact]
     public async Task Test()
     {
         var targetName = await Setups.ArchivedTargetAsync(Runner);
 
-        await UiHelper.NavigateToListAsync(Page, "Targets", "#target-list");
-
-        var found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-            (await Page.InnerTextAsync("#target-list")).Contains(targetName));
-        Assert.False(found, "Archived target should not appear before Show Archived is checked");
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", targetName);
+        Assert.DoesNotContain(targetName, await Page.InnerTextAsync("#target-list"));
 
         await Page.CheckAsync("#targets-show-archived");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        found = await PagedUiHelper.NavigateToPageWhereAsync(Page, "pager-targets", async () =>
-            (await Page.InnerTextAsync("#target-list")).Contains(targetName));
-        Assert.True(found, "Archived target should appear after Show Archived is checked");
+        await Assertions.Expect(Page.Locator("#target-list").GetByText(targetName)).ToBeVisibleAsync();
     }
 }

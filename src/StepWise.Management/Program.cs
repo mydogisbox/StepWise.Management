@@ -129,15 +129,21 @@ app.MapGet("/targets", async (bool showArchived = false, int page = 1, int pageS
     return Results.Ok(new { items, total, page, pageSize, totalPages = (int)Math.Ceiling((double)total / pageSize) });
 });
 
-app.MapGet("/catalogs", async (bool showArchived = false, int page = 1, int pageSize = 10) =>
+app.MapGet("/catalogs", async (bool showArchived = false, int page = 1, int pageSize = 10, string? name = null) =>
 {
     page     = Math.Max(1, page);
     pageSize = Math.Clamp(pageSize, 1, 100);
-    var where = showArchived ? "" : " WHERE is_archived = false";
+    var filterName = !string.IsNullOrEmpty(name);
+    var conditions = new List<string>();
+    if (!showArchived) conditions.Add("is_archived = false");
+    if (filterName)    conditions.Add("name = $1");
+    var where = conditions.Count > 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
     await using var conn = new NpgsqlConnection(connectionString);
     await conn.OpenAsync();
     await using var cmd = conn.CreateCommand();
-    cmd.CommandText = $"SELECT id, name, description, is_archived, COUNT(*) OVER() FROM catalog_summaries{where} ORDER BY created_at DESC LIMIT $1 OFFSET $2";
+    if (filterName) cmd.Parameters.Add(new NpgsqlParameter { Value = name });
+    var p = cmd.Parameters.Count + 1;
+    cmd.CommandText = $"SELECT id, name, description, is_archived, COUNT(*) OVER() FROM catalog_summaries{where} ORDER BY created_at DESC LIMIT ${p} OFFSET ${p + 1}";
     cmd.Parameters.Add(new NpgsqlParameter { Value = pageSize });
     cmd.Parameters.Add(new NpgsqlParameter { Value = (page - 1) * pageSize });
     var items = new List<object>();

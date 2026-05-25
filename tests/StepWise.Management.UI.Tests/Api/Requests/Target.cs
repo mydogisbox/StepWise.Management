@@ -41,13 +41,12 @@ public record UpdateTargetCommand() : TargetCommand<UpdateTargetOutput>
 
 public record CommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostTargetCommandsRequest() : WorkflowRequest<CommandSuccess[], PostTargetCommandsRequest>, IWorkflowRequest
+public record PostTargetCommandsRequest() : WorkflowRequest<CommandSuccess[]>
 {
-    public static string StepName => "postTargetCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.GetOrDefault<CreateTargetOutput>("CreateTargetCommand")?.Id ??
-        ctx.GetOrDefault<TargetResponse>("getTarget")?.Id ??
-        ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
+        ctx.GetOrDefault<CreateTargetOutput>(nameof(CreateTargetCommand))?.Id ??
+        ctx.GetOrDefault<TargetResponse>(nameof(GetTargetRequest))?.Id ??
+        ctx.Get<CommandSuccess[]>(nameof(PostTargetCommandsRequest))[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<TargetCommand>());
 }
 
@@ -82,11 +81,10 @@ public class PostTargetCommandsStep : HttpStep<PostTargetCommandsRequest, Comman
 
 public record TargetResponse(string Id, string Name, string BaseUrl, bool IsArchived, string? CreatedAt);
 
-public record GetTargetRequest() : WorkflowRequest<TargetResponse, GetTargetRequest>, IWorkflowRequest
+public record GetTargetRequest() : WorkflowRequest<TargetResponse>
 {
-    public static string StepName => "getTarget";
     public IFieldValue<string> Id { get; init; } =
-        From(ctx => ctx.Get<CommandSuccess[]>("postTargetCommands")[0].AggregateId);
+        From(ctx => ctx.Get<CommandSuccess[]>(nameof(PostTargetCommandsRequest))[0].AggregateId);
 }
 
 public class GetTargetStep : HttpStep<GetTargetRequest, TargetResponse, GetTargetStep>, IHttpStep
@@ -97,9 +95,8 @@ public class GetTargetStep : HttpStep<GetTargetRequest, TargetResponse, GetTarge
 
 // ── GET /targets ───────────────────────────────────────────────────────────────
 
-public record ListTargetsRequest() : WorkflowRequest<PagedResponse<TargetResponse>, ListTargetsRequest>, IWorkflowRequest
+public record ListTargetsRequest() : WorkflowRequest<PagedResponse<TargetResponse>>
 {
-    public static string StepName => "listTargets";
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
     public IFieldValue<int>    Page         { get; init; } = Static(1);
     public IFieldValue<int>    PageSize     { get; init; } = Static(10);

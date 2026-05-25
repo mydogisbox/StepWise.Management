@@ -9,7 +9,7 @@
     <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Core/CommandFramework.Core.csproj" />
     <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Http/CommandFramework.Http.csproj" />
     <ProjectReference Include="../../../CommandFramework/src/CommandFramework.Postgres/CommandFramework.Postgres.csproj" />
-    <PackageReference Include="Walkthrough.Json" Version="0.5.2" />
+    <PackageReference Include="Walkthrough.Json" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />

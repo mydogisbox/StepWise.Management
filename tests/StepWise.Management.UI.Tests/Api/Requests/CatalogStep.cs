@@ -20,10 +20,10 @@ public record UnarchiveStepOutput();
 public record UpsertStepCommand() : CatalogStepCommand<UpsertStepOutput>
 {
     public IFieldValue<string>  Id        { get; init; } = Generated(() => Guid.NewGuid().ToString());
-    public IFieldValue<string>  CatalogId { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>("CreateCatalogCommand").Id);
+    public IFieldValue<string>  CatalogId { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>(nameof(CreateCatalogCommand)).Id);
     public IFieldValue<string>  StepName  { get; init; } = Generators.RandomName();
     public IFieldValue<string>  TargetId  { get; init; } = From(ctx =>
-        ctx.Get<PagedResponse<TargetResponse>>("listTargets").Items.Single(t => t.Name == ctx.Get<CreateTargetOutput>("CreateTargetCommand").Name).Id);
+        ctx.Get<PagedResponse<TargetResponse>>(nameof(ListTargetsRequest)).Items.Single(t => t.Name == ctx.Get<CreateTargetOutput>(nameof(CreateTargetCommand)).Name).Id);
     public IFieldValue<string>  Method          { get; init; } = Static("GET");
     public IFieldValue<string>  Path            { get; init; } = Static("/api/ping");
     public IFieldValue<object?> Defaults        { get; init; } = Static<object?>(null);
@@ -42,12 +42,11 @@ public record UnarchiveStepCommand() : CatalogStepCommand<UnarchiveStepOutput>;
 
 public record CatalogStepCommandSuccess(int Index, string AggregateId, string[] Events);
 
-public record PostCatalogStepCommandsRequest() : WorkflowRequest<CatalogStepCommandSuccess[], PostCatalogStepCommandsRequest>, IWorkflowRequest
+public record PostCatalogStepCommandsRequest() : WorkflowRequest<CatalogStepCommandSuccess[]>
 {
-    public static string StepName => "postCatalogStepCommands";
     public IFieldValue<string> AggregateId { get; init; } = From(ctx =>
-        ctx.GetOrDefault<UpsertStepOutput>("UpsertStepCommand")?.Id ??
-        ctx.Get<CatalogStepCommandSuccess[]>("postCatalogStepCommands")[0].AggregateId);
+        ctx.GetOrDefault<UpsertStepOutput>(nameof(UpsertStepCommand))?.Id ??
+        ctx.Get<CatalogStepCommandSuccess[]>(nameof(PostCatalogStepCommandsRequest))[0].AggregateId);
     public IFieldValue<List<object>> Commands { get; init; } = From(ctx => ctx.GetAccumulated<CatalogStepCommand>());
 }
 
@@ -81,11 +80,10 @@ public class PostCatalogStepCommandsStep : HttpStep<PostCatalogStepCommandsReque
 
 public record CatalogStepResponse(string Id, string CatalogId, string StepName, string TargetId, string Method, string Path, bool IsArchived, JsonElement? Defaults, JsonElement? RequestShape, JsonElement? ResponseShape, bool? IsPolling, int? RetryCount, int? RetryDurationMs);
 
-public record GetCatalogStepRequest() : WorkflowRequest<CatalogStepResponse, GetCatalogStepRequest>, IWorkflowRequest
+public record GetCatalogStepRequest() : WorkflowRequest<CatalogStepResponse>
 {
-    public static string StepName => "getCatalogStep";
     public IFieldValue<string> Id { get; init; } =
-        From(ctx => ctx.Get<CatalogStepCommandSuccess[]>("postCatalogStepCommands")[0].AggregateId);
+        From(ctx => ctx.Get<CatalogStepCommandSuccess[]>(nameof(PostCatalogStepCommandsRequest))[0].AggregateId);
 }
 
 public class GetCatalogStepStep : HttpStep<GetCatalogStepRequest, CatalogStepResponse, GetCatalogStepStep>, IHttpStep
@@ -96,10 +94,9 @@ public class GetCatalogStepStep : HttpStep<GetCatalogStepRequest, CatalogStepRes
 
 // ── GET /catalog-steps ────────────────────────────────────────────────────────
 
-public record ListCatalogStepsRequest() : WorkflowRequest<CatalogStepResponse[], ListCatalogStepsRequest>, IWorkflowRequest
+public record ListCatalogStepsRequest() : WorkflowRequest<CatalogStepResponse[]>
 {
-    public static string StepName => "listCatalogSteps";
-    public IFieldValue<string> CatalogId    { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>("CreateCatalogCommand").Id);
+    public IFieldValue<string> CatalogId    { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>(nameof(CreateCatalogCommand)).Id);
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
 }
 
