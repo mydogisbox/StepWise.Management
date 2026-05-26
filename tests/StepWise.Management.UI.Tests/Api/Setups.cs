@@ -5,15 +5,17 @@ namespace StepWise.Management.UI.Tests.Api;
 
 public static class Setups
 {
-    public static async Task<(UpsertStepOutput AdminStep, UpsertStepOutput ListProductsStep)> ExampleCatalogAsync(WorkflowRunner runner)
+    public static async Task ExampleCatalogAsync(WorkflowRunner runner)
     {
-        var target = await runner.BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:5010") });
+        await runner.BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:5010") });
         await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        await runner.ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
 
         await runner.BuildAsync(new CreateCatalogCommand());
         await runner.ExecuteAsync(new PostCatalogCommandsRequest());
+    }
 
+    public static async Task<UpsertStepOutput> BuildAdminCreateProductStepAsync(WorkflowRunner runner)
+    {
         var adminStep = await runner.BuildAsync(new UpsertStepCommand() with
         {
             StepName = Static("admin-create-product"),
@@ -31,32 +33,33 @@ public static class Setups
                 ["stock"]    = new Dictionary<string, object?> { ["static"] = 10 }
             })
         });
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            Commands = Static(new List<object> { adminStep })
-        });
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
+        return adminStep;
+    }
 
+    private static async Task BuildListProductsStepAsync(WorkflowRunner runner)
+    {
         var listStep = await runner.BuildAsync(new UpsertStepCommand() with
         {
             StepName = Static("list-products"),
             Method   = Static("GET"),
             Path     = Static("/products")
         });
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            Commands = Static(new List<object> { listStep })
-        });
-
-        return (adminStep, listStep);
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
     }
 
     public static async Task<string> TwoStepWorkflowAsync(WorkflowRunner runner)
     {
-        var (adminStep, _) = await ExampleCatalogAsync(runner);
+        await ExampleCatalogAsync(runner);
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+        
+        await BuildAdminCreateProductStepAsync(runner);
         await runner.BuildAsync(new AppendStepCommand());
+
+        await BuildListProductsStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
+
         await runner.ExecuteAsync(new PostWorkflowCommandsRequest());
 
         return workflow.Name;
@@ -64,11 +67,16 @@ public static class Setups
 
     public static async Task<string> CrossReferenceWorkflowAsync(WorkflowRunner runner)
     {
-        var (adminStep, _) = await ExampleCatalogAsync(runner);
+        await ExampleCatalogAsync(runner);
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+
+        await BuildAdminCreateProductStepAsync(runner);
         await runner.BuildAsync(new AppendStepCommand());
+
+        await BuildListProductsStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
+
         await runner.BuildAsync(new AddAssertionCommand() with
         {
             Assertion = Static<object>(new { equal = new object[] { "$list-products.totalCount", "999" } })
@@ -80,11 +88,16 @@ public static class Setups
 
     public static async Task<string> StoredAssertionWorkflowAsync(WorkflowRunner runner)
     {
-        var (adminStep, _) = await ExampleCatalogAsync(runner);
+        await ExampleCatalogAsync(runner);
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
+
+        await BuildAdminCreateProductStepAsync(runner);
         await runner.BuildAsync(new AppendStepCommand());
+
+        await BuildListProductsStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
+
         await runner.BuildAsync(new AddAssertionCommand() with
         {
             Assertion = Static<object>(new { notEmpty = "list-products" })
@@ -96,7 +109,12 @@ public static class Setups
 
     public static async Task<string> ProductCategoryFilterWorkflowAsync(WorkflowRunner runner)
     {
-        var (adminStep, _) = await ExampleCatalogAsync(runner);
+        await ExampleCatalogAsync(runner);
+
+        var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
+
+        await BuildAdminCreateProductStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
 
         var listElectronicsStep = await runner.BuildAsync(new UpsertStepCommand() with
         {
@@ -104,15 +122,9 @@ public static class Setups
             Method   = Static("GET"),
             Path     = Static("/products?category=electronics")
         });
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(listElectronicsStep.Id),
-            Commands    = Static(new List<object> { listElectronicsStep })
-        });
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
+        await runner.BuildAsync(new AppendStepCommand());
 
-        var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listElectronicsStep.Id) });
         await runner.ExecuteAsync(new PostWorkflowCommandsRequest());
 
         return workflow.Name;
@@ -122,20 +134,17 @@ public static class Setups
     {
         await ExampleCatalogAsync(runner);
 
-        var listInStockStep = await runner.BuildAsync(new UpsertStepCommand() with
+        var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
+
+        await runner.BuildAsync(new UpsertStepCommand() with
         {
             StepName = Static("list-in-stock"),
             Method   = Static("GET"),
             Path     = Static("/products?inStock=true")
         });
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(listInStockStep.Id),
-            Commands    = Static(new List<object> { listInStockStep })
-        });
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
+        await runner.BuildAsync(new AppendStepCommand());
 
-        var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listInStockStep.Id) });
         await runner.ExecuteAsync(new PostWorkflowCommandsRequest());
 
         return workflow.Name;
@@ -143,11 +152,16 @@ public static class Setups
 
     public static async Task<string> ReusedExampleWorkflowAssertionAsync(WorkflowRunner runner)
     {
-        var (adminStep, listStep) = await ExampleCatalogAsync(runner);
+        await ExampleCatalogAsync(runner);
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(adminStep.Id) });
-        await runner.BuildAsync(new AppendStepCommand() with { CatalogStepId = Static(listStep.Id) });
+
+        await BuildAdminCreateProductStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
+
+        await BuildListProductsStepAsync(runner);
+        await runner.BuildAsync(new AppendStepCommand());
+
         await runner.BuildAsync(new AddAssertionCommand() with
         {
             Assertion = Static<object>(new { notEmpty = "$list-products" })
@@ -159,18 +173,13 @@ public static class Setups
 
     public static async Task<string> RunFailedWorkflowAsync(WorkflowRunner runner)
     {
-        var target = await runner.BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:9999") });
+        await runner.BuildAsync(new CreateTargetCommand() with { BaseUrl = Static("http://localhost:9999") });
         await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        await runner.ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
 
         await runner.BuildAsync(new CreateCatalogCommand());
         await runner.ExecuteAsync(new PostCatalogCommandsRequest());
-        var step = await runner.BuildAsync(new UpsertStepCommand());
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            AggregateId = Static(step.Id),
-            Commands    = Static(new List<object> { step })
-        });
+        await runner.BuildAsync(new UpsertStepCommand());
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
         await runner.BuildAsync(new AppendStepCommand());
@@ -179,57 +188,22 @@ public static class Setups
         return workflow.Name;
     }
 
-    public static async Task<(string TargetId, string CatalogId)> SetupCatalogAsync(WorkflowRunner runner)
+    public static async Task SetupCatalogAsync(WorkflowRunner runner)
     {
-        var target = await runner.BuildAsync(new CreateTargetCommand());
+        await runner.BuildAsync(new CreateTargetCommand());
         await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        await runner.ExecuteAsync(new ListTargetsRequest());
-        var catalog = await runner.BuildAsync(new CreateCatalogCommand());
+        await runner.BuildAsync(new CreateCatalogCommand());
         await runner.ExecuteAsync(new PostCatalogCommandsRequest());
-        return (target.Id, catalog.Id);
     }
 
     public static async Task SetupCatalogWithStepAsync(WorkflowRunner runner)
     {
-        var target = await runner.BuildAsync(new CreateTargetCommand());
+        await runner.BuildAsync(new CreateTargetCommand());
         await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        await runner.ExecuteAsync(new ListTargetsRequest() with { Name = Static(target.Name) });
-
         await runner.BuildAsync(new CreateCatalogCommand());
         await runner.ExecuteAsync(new PostCatalogCommandsRequest());
         await runner.BuildAsync(new UpsertStepCommand());
         await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
-    }
-
-    public static async Task<RunResponse> RunViaUiAsync(WorkflowRunner runner, string workflowName)
-    {
-        var listed = await runner.ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
-        Assert.Single(listed.Items);
-        await runner.ExecuteAsync(new RunWorkflowRequest());
-        return await runner.PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
-    }
-
-    public static async Task<string> ArchivedWorkflowAsync(WorkflowRunner runner)
-    {
-        var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
-        await runner.BuildAsync(new ArchiveWorkflowCommand());
-        await runner.ExecuteAsync(new PostWorkflowCommandsRequest());
-        return workflow.Name;
-    }
-
-    public static async Task<string> ArchivedTargetAsync(WorkflowRunner runner)
-    {
-        var target = await runner.BuildAsync(new CreateTargetCommand());
-        await runner.BuildAsync(new ArchiveTargetCommand());
-        await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        return target.Name;
-    }
-
-    public static async Task<string> CreatedTargetAsync(WorkflowRunner runner)
-    {
-        var target = await runner.BuildAsync(new CreateTargetCommand());
-        await runner.ExecuteAsync(new PostTargetCommandsRequest());
-        return target.Name;
     }
 
     public static async Task<string> VoucherValidationAsync(WorkflowRunner runner)
@@ -243,10 +217,7 @@ public static class Setups
             Path     = Static("/vouchers/validate"),
             Defaults = Static<object?>(new Dictionary<string, object?> { ["code"] = "SAVE10" })
         });
-        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest() with
-        {
-            Commands = Static(new List<object> { validateSave10Step })
-        });
+        await runner.ExecuteAsync(new PostCatalogStepCommandsRequest());
 
         var workflow = await runner.BuildAsync(new CreateWorkflowCommand());
         await runner.BuildAsync(new AppendStepCommand());

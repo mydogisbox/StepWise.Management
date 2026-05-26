@@ -24,6 +24,7 @@ public abstract class PlaywrightTestBase : ManagementTestBase, IAsyncLifetime
     {
         var browser = await SharedBrowser.GetAsync();
         Page = await browser.NewPageAsync();
+        await Page.GotoAsync(UiHelper.AppUrl);
     }
 
     public async Task DisposeAsync() => await Page.CloseAsync();
@@ -40,9 +41,18 @@ public abstract class PlaywrightWithTargetTestBase : PlaywrightTestBase
     {
         await base.InitializeAsync();
         PwTarget = new PlaywrightTarget(Page)
+            .Register<PlaywrightListCatalogsStep>()
             .Register<PlaywrightListWorkflowsStep>()
-            .Register<PlaywrightRunWorkflowStep>()
-            .Register<PlaywrightGetRunStep>()
-            .Register<PlaywrightListRunsStep>();
+            .Register<PlaywrightListRunsStep>()
+            .Register<PlaywrightOpenCatalogDetailStep>()
+            .Register<PlaywrightOpenWorkflowDetailStep>()
+            .Register<PlaywrightArchiveCatalogStep>()
+            .Register<PlaywrightArchiveWorkflowStep>()
+            .Register<PlaywrightArchiveTargetStep>()
+            .Register<PlaywrightCreateWorkflowViaFormStep>()
+            .Register<PlaywrightCreateCatalogViaFormStep>()
+            .Register<PlaywrightNextWorkflowsPageStep>()
+            .Register<PlaywrightNextCatalogsPageStep>()
+            .Register<PlaywrightOpenRunDetailStep>();
     }
 }

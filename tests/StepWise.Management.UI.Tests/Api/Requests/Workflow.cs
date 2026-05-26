@@ -140,7 +140,7 @@ public class GetWorkflowStep : HttpStep<GetWorkflowRequest, WorkflowResponse, Ge
 
 // ── GET /workflows ────────────────────────────────────────────────────────────
 
-public record WorkflowSummaryResponse(string Id, string Name, bool IsArchived);
+public record WorkflowSummaryResponse(string Id, string Name, bool IsArchived, int? RunCount = null, string? PassRate = null);
 
 public record ListWorkflowsRequest() : WorkflowRequest<PagedResponse<WorkflowSummaryResponse>>
 {
@@ -167,6 +167,30 @@ public class ListWorkflowsStep : HttpStep<ListWorkflowsRequest, PagedResponse<Wo
         if (!string.IsNullOrEmpty(name)) q["name"] = name;
         return q;
     }
+}
+
+// ── UI action steps ───────────────────────────────────────────────────────────
+
+public record OpenWorkflowDetailRequest() : WorkflowRequest<UiActionResponse>
+{
+    public IFieldValue<string> Name { get; init; } = From(ctx => ctx.Get<CreateWorkflowOutput>(nameof(CreateWorkflowCommand)).Name);
+}
+
+public record ArchiveWorkflowViaUiRequest() : WorkflowRequest<UiActionResponse>;
+
+public record CreateWorkflowViaFormOutput(string Name);
+
+public record CreateWorkflowViaFormRequest() : WorkflowRequest<CreateWorkflowViaFormOutput>
+{
+    public IFieldValue<string> Name { get; init; } = Generators.RandomName();
+}
+
+public record NextWorkflowsPageRequest() : WorkflowRequest<PagerInfo>;
+
+public record OpenRunDetailRequest() : WorkflowRequest<UiActionResponse>
+{
+    public IFieldValue<string> WorkflowName { get; init; } =
+        From(ctx => ctx.Get<CreateWorkflowOutput>(nameof(CreateWorkflowCommand)).Name);
 }
 
 // ── POST /api/workflows/{workflowId}/run ──────────────────────────────────────

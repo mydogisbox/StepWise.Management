@@ -8,11 +8,13 @@ public class Target_Archive_ExcludedFromList_ViaUI : PlaywrightTestBase
     [Fact]
     public async Task Test()
     {
-        var targetName = await Setups.ArchivedTargetAsync(Runner);
+        var target = await BuildAsync(new CreateTargetCommand());
+        await BuildAsync(new ArchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", targetName);
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", target.Name);
 
-        Assert.DoesNotContain(targetName, await Page.InnerTextAsync("#target-list"));
+        Assert.DoesNotContain(target.Name, await Page.InnerTextAsync("#target-list"));
     }
 }
 
@@ -22,7 +24,8 @@ public class Target_Create_HasCreatedAt_ViaUI : PlaywrightTestBase
     [Fact]
     public async Task Test()
     {
-        await Setups.CreatedTargetAsync(Runner);
+        await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
         await UiHelper.NavigateToListAsync(Page, "Targets", "#target-list");
 
@@ -142,12 +145,14 @@ public class Target_ShowArchived_TogglesArchivedRows_ViaUI : PlaywrightTestBase
     [Fact]
     public async Task Test()
     {
-        var targetName = await Setups.ArchivedTargetAsync(Runner);
+        var target = await BuildAsync(new CreateTargetCommand());
+        await BuildAsync(new ArchiveTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
 
-        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", targetName);
-        Assert.DoesNotContain(targetName, await Page.InnerTextAsync("#target-list"));
+        await UiHelper.NavigateAndFilterAsync(Page, "Targets", "targets-name-filter", target.Name);
+        Assert.DoesNotContain(target.Name, await Page.InnerTextAsync("#target-list"));
 
         await Page.CheckAsync("#targets-show-archived");
-        await Assertions.Expect(Page.Locator("#target-list").GetByText(targetName)).ToBeVisibleAsync();
+        await Assertions.Expect(Page.Locator("#target-list").GetByText(target.Name)).ToBeVisibleAsync();
     }
 }

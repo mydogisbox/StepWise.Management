@@ -121,3 +121,14 @@ public class ListTargetsStep : HttpStep<ListTargetsRequest, PagedResponse<Target
         return q;
     }
 }
+
+// ── UI action steps ───────────────────────────────────────────────────────────
+
+public record UiActionResponse();
+
+public record PagerInfo(int CurrentPage, int TotalPages);
+
+public record ArchiveTargetViaUiRequest() : WorkflowRequest<UiActionResponse>
+{
+    public IFieldValue<string> Name { get; init; } = From(ctx => ctx.Get<CreateTargetOutput>(nameof(CreateTargetCommand)).Name);
+}

@@ -94,6 +94,7 @@ public record ListCatalogsRequest() : WorkflowRequest<PagedResponse<CatalogRespo
     public IFieldValue<string> ShowArchived { get; init; } = Static("false");
     public IFieldValue<int>    Page         { get; init; } = Static(1);
     public IFieldValue<int>    PageSize     { get; init; } = Static(10);
+    public IFieldValue<string> Name         { get; init; } = Static("");
 }
 
 public class ListCatalogsStep : HttpStep<ListCatalogsRequest, PagedResponse<CatalogResponse>, ListCatalogsStep>, IHttpStep
@@ -101,10 +102,34 @@ public class ListCatalogsStep : HttpStep<ListCatalogsRequest, PagedResponse<Cata
     public static HttpMethod Method => HttpMethod.Get;
     public static string     Path   => "/catalogs";
 
-    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields) => new()
+    public override Dictionary<string, string> MapQuery(Dictionary<string, object?> resolvedFields)
     {
-        ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false",
-        ["page"]         = resolvedFields["Page"]?.ToString() ?? "1",
-        ["pageSize"]     = resolvedFields["PageSize"]?.ToString() ?? "10"
-    };
+        var q = new Dictionary<string, string>
+        {
+            ["showArchived"] = resolvedFields["ShowArchived"]?.ToString() ?? "false",
+            ["page"]         = resolvedFields["Page"]?.ToString() ?? "1",
+            ["pageSize"]     = resolvedFields["PageSize"]?.ToString() ?? "10"
+        };
+        var name = resolvedFields["Name"]?.ToString();
+        if (!string.IsNullOrEmpty(name)) q["name"] = name;
+        return q;
+    }
 }
+
+// ── UI action steps ───────────────────────────────────────────────────────────
+
+public record OpenCatalogDetailRequest() : WorkflowRequest<UiActionResponse>
+{
+    public IFieldValue<string> Name { get; init; } = From(ctx => ctx.Get<CreateCatalogOutput>(nameof(CreateCatalogCommand)).Name);
+}
+
+public record ArchiveCatalogViaUiRequest() : WorkflowRequest<UiActionResponse>;
+
+public record CreateCatalogViaFormOutput(string Name);
+
+public record CreateCatalogViaFormRequest() : WorkflowRequest<CreateCatalogViaFormOutput>
+{
+    public IFieldValue<string> Name { get; init; } = Generators.RandomName();
+}
+
+public record NextCatalogsPageRequest() : WorkflowRequest<PagerInfo>;

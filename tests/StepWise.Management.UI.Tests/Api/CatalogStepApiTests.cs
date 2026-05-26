@@ -9,7 +9,10 @@ public class Catalog_AddStep_AllFieldsCorrect : ManagementTestBase
     [Fact]
     public async Task Test()
     {
-        var (targetId, catalogId) = await Setups.SetupCatalogAsync(Runner);
+        var target = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        var catalog = await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -22,8 +25,8 @@ public class Catalog_AddStep_AllFieldsCorrect : ManagementTestBase
         var step = await ExecuteAsync(new GetCatalogStepRequest());
 
         Assert.Equal("getStatus",   step.StepName);
-        Assert.Equal(targetId,      step.TargetId);
-        Assert.Equal(catalogId,     step.CatalogId);
+        Assert.Equal(target.Id,      step.TargetId);
+        Assert.Equal(catalog.Id,     step.CatalogId);
         Assert.Equal("GET",         step.Method);
         Assert.Equal("/api/status", step.Path);
         Assert.Equal("value1",      step.Defaults?.GetProperty("param").GetString());
@@ -35,7 +38,10 @@ public class Catalog_UpsertStep_UpdatesFields : ManagementTestBase
     [Fact]
     public async Task Test()
     {
-        var (targetId, _) = await Setups.SetupCatalogAsync(Runner);
+        var target = await BuildAsync(new CreateTargetCommand());
+        await ExecuteAsync(new PostTargetCommandsRequest());
+        await BuildAsync(new CreateCatalogCommand());
+        await ExecuteAsync(new PostCatalogCommandsRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
@@ -44,12 +50,11 @@ public class Catalog_UpsertStep_UpdatesFields : ManagementTestBase
             Path     = Static("/api/catalogs"),
             Defaults = Static<object?>(new Dictionary<string, object?> { ["param"] = "value1" })
         });
-        var firstPost = await ExecuteAsync(new PostCatalogStepCommandsRequest());
+        await ExecuteAsync(new PostCatalogStepCommandsRequest());
         await ExecuteAsync(new GetCatalogStepRequest());
 
         await BuildAsync(new UpsertStepCommand() with
         {
-            Id       = Static(firstPost[0].AggregateId),
             StepName = Static("getStatus"),
             Method   = Static("POST"),
             Path     = Static("/api/catalogs/v2"),
@@ -58,11 +63,11 @@ public class Catalog_UpsertStep_UpdatesFields : ManagementTestBase
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
         var step = await ExecuteAsync(new GetCatalogStepRequest());
 
-        Assert.Equal("getStatus",       step.StepName);
-        Assert.Equal(targetId,          step.TargetId);
-        Assert.Equal("POST",            step.Method);
+        Assert.Equal("getStatus",        step.StepName);
+        Assert.Equal(target.Id,          step.TargetId);
+        Assert.Equal("POST",             step.Method);
         Assert.Equal("/api/catalogs/v2", step.Path);
-        Assert.Equal("value2",          step.Defaults?.GetProperty("param").GetString());
+        Assert.Equal("value2",           step.Defaults?.GetProperty("param").GetString());
     }
 }
 
