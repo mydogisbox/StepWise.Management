@@ -53,6 +53,7 @@ public abstract class PlaywrightWithTargetTestBase : PlaywrightTestBase
             .Register<PlaywrightCreateCatalogViaFormStep>()
             .Register<PlaywrightNextWorkflowsPageStep>()
             .Register<PlaywrightNextCatalogsPageStep>()
-            .Register<PlaywrightOpenRunDetailStep>();
+            .Register<PlaywrightOpenRunDetailStep>()
+            .Register<PlaywrightQuickRunWorkflowStep>();
     }
 }

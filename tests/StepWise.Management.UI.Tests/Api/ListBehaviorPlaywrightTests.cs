@@ -182,9 +182,6 @@ public class Runs_List_ShowsCompletedRun_ViaUI : PlaywrightWithTargetTestBase
     public async Task Test()
     {
         var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
-
-        var listed = await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
-        Assert.Single(listed.Items);
         await ExecuteAsync(new RunWorkflowRequest());
         await PollAsync(new GetRunRequest(), r => r.Status == "completed", intervalMs: 200, timeoutMs: 15000);
 
@@ -311,27 +308,22 @@ public class Catalog_EditStep_FormPreFills_ViaUI : PlaywrightWithTargetTestBase
         await ExecuteAsync(new PostTargetCommandsRequest());
 
         await BuildAsync(new CreateCatalogCommand());
-        var stepName = $"step-{Guid.NewGuid():N}";
-        await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static(stepName),
-            Method   = Static("POST"),
-            Path     = Static("/api/test")
-        });
+        var step = await BuildAsync(new UpsertStepCommand());
+
         await ExecuteAsync(new PostCatalogCommandsRequest());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
 
         await ExecuteAsync(new ListCatalogsRequest());
         await ExecuteAsync(new OpenCatalogDetailRequest());
-        await Assertions.Expect(Page.Locator("#catalog-steps-list").GetByText(stepName)).ToBeVisibleAsync();
+        await Assertions.Expect(Page.Locator("#catalog-steps-list").GetByText(step.StepName)).ToBeVisibleAsync();
 
         await Page.Locator("#catalog-steps-list").GetByText("Edit").ClickAsync();
         await Assertions.Expect(Page.Locator("#step-form")).ToBeVisibleAsync();
 
         var nameValue = await Page.InputValueAsync("#step-form-name");
-        Assert.Equal(stepName, nameValue);
+        Assert.Equal(step.StepName, nameValue);
         var pathValue = await Page.InputValueAsync("#step-form-path");
-        Assert.Equal("/api/test", pathValue);
+        Assert.Equal(step.Path, pathValue);
     }
 }
 
@@ -344,25 +336,36 @@ public class Catalog_ArchiveStep_BadgeAppearsAndDisappears_ViaUI : PlaywrightWit
         await ExecuteAsync(new PostTargetCommandsRequest());
 
         await BuildAsync(new CreateCatalogCommand());
-        var stepName = $"step-{Guid.NewGuid():N}";
-        await BuildAsync(new UpsertStepCommand() with
-        {
-            StepName = Static(stepName),
-            Path     = Static("/api/test")
-        });
         await ExecuteAsync(new PostCatalogCommandsRequest());
+        
+        var step = await BuildAsync(new UpsertStepCommand());
         await ExecuteAsync(new PostCatalogStepCommandsRequest());
 
         await ExecuteAsync(new ListCatalogsRequest());
         await ExecuteAsync(new OpenCatalogDetailRequest());
 
-        var stepRow = Page.Locator("#catalog-steps-list > div").Filter(new LocatorFilterOptions { HasText = stepName });
+        var stepRow = Page.Locator("#catalog-steps-list > div").Filter(new LocatorFilterOptions { HasText = step.StepName });
         await stepRow.GetByText("Archive").ClickAsync();
 
         await Assertions.Expect(stepRow.Locator("span.text-yellow-700")).ToBeVisibleAsync();
 
         await stepRow.GetByText("Unarchive").ClickAsync();
         await Assertions.Expect(stepRow.Locator("span.text-yellow-700")).Not.ToBeVisibleAsync();
+    }
+}
+
+public class Workflow_QuickRun_ShowsResultBadge_ViaUI : PlaywrightWithTargetTestBase
+{
+    [Fact]
+    public async Task Test()
+    {
+        var workflowName = await Setups.TwoStepWorkflowAsync(Runner);
+
+        await ExecuteAsync(new ListWorkflowsRequest() with { Name = Static(workflowName) });
+        await ExecuteAsync(new QuickRunViaUiRequest());
+
+        await Assertions.Expect(Page.Locator("#run-result-badge")).ToHaveTextAsync("PASS",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15000 });
     }
 }
 

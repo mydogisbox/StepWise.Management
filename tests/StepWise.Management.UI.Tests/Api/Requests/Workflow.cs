@@ -178,6 +178,11 @@ public record OpenWorkflowDetailRequest() : WorkflowRequest<UiActionResponse>
 
 public record ArchiveWorkflowViaUiRequest() : WorkflowRequest<UiActionResponse>;
 
+public record QuickRunViaUiRequest() : WorkflowRequest<UiActionResponse>
+{
+    public IFieldValue<string> Name { get; init; } = From(ctx => ctx.Get<CreateWorkflowOutput>(nameof(CreateWorkflowCommand)).Name);
+}
+
 public record CreateWorkflowViaFormOutput(string Name);
 
 public record CreateWorkflowViaFormRequest() : WorkflowRequest<CreateWorkflowViaFormOutput>

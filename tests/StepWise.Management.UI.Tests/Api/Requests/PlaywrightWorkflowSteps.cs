@@ -171,6 +171,16 @@ public class PlaywrightListWorkflowsStep : PlaywrightStep<ListWorkflowsRequest>
     }
 }
 
+public class PlaywrightQuickRunWorkflowStep : PlaywrightStep<QuickRunViaUiRequest>
+{
+    public override async Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
+    {
+        var name = (string)resolvedFields["Name"]!;
+        await page.Locator("tr").Filter(new LocatorFilterOptions { HasText = name }).GetByText("Run").ClickAsync();
+        return new UiActionResponse();
+    }
+}
+
 public class PlaywrightListTargetsStep : PlaywrightStep<ListTargetsRequest>
 {
     public override async Task<object?> ExecuteAsync(IPage page, Dictionary<string, object?> resolvedFields, WorkflowContext context)
